@@ -1,0 +1,24 @@
+{
+	"name": "CoinClicker",
+	"tree": {
+		"$className": "DataModel",
+		"ServerScriptService": {
+			"$className": "ServerScriptService",
+			"DataStore2": {
+				"$path": "DataStore2"
+			},
+			"Main": {
+				"$path": "game/src/server/Main.server.lua"
+			}
+		},
+		"StarterPlayer": {
+			"$className": "StarterPlayer",
+			"StarterPlayerScripts": {
+				"$className": "StarterPlayerScripts",
+				"CoinGui": {
+					"$path": "game/src/client/CoinGui.client.lua"
+				}
+			}
+		}
+	}
+}
