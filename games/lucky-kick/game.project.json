@@ -1,0 +1,31 @@
+{
+	"name": "LuckyBlockKick",
+	"tree": {
+		"$className": "DataModel",
+		"Lighting": {
+			"$className": "Lighting",
+			"$properties": { "Technology": "Future", "GlobalShadows": true, "ClockTime": 15 }
+		},
+		"ReplicatedStorage": {
+			"$className": "ReplicatedStorage",
+			"KickConfig": { "$path": "src/shared/KickConfig.lua" },
+			"Locale": { "$path": "src/shared/Locale.lua" }
+		},
+		"ServerScriptService": {
+			"$className": "ServerScriptService",
+			"DataStore2": { "$path": "../../DataStore2" },
+			"Main": { "$path": "src/server/Main.server.lua" }
+		},
+		"ServerStorage": {
+			"$className": "ServerStorage",
+			"SaveInStudio": { "$className": "BoolValue", "$properties": { "Value": true } }
+		},
+		"StarterPlayer": {
+			"$className": "StarterPlayer",
+			"StarterPlayerScripts": {
+				"$className": "StarterPlayerScripts",
+				"KickGui": { "$path": "src/client/KickGui.client.lua" }
+			}
+		}
+	}
+}
