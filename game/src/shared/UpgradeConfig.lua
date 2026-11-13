@@ -67,4 +67,33 @@ function UpgradeConfig.CoinsPerSecond(autoLevel, factoryLevel)
 	return autoLevel + factoryLevel * UpgradeConfig.FACTORY_COINS_PER_LEVEL
 end
 
+---------------------------------------------------------------------
+-- 転生・ボーナス
+---------------------------------------------------------------------
+UpgradeConfig.REBIRTH_BASE_COST = 10000
+UpgradeConfig.REBIRTH_COST_GROWTH = 3
+UpgradeConfig.REBIRTH_BONUS = 0.5 -- 転生1回ごとに倍率 +0.5
+
+UpgradeConfig.FRIEND_BONUS = 0.2 -- 同じサーバーのフレンド1人ごとに +20%
+UpgradeConfig.MAX_FRIENDS_COUNTED = 5
+
+UpgradeConfig.DAILY_BASE_REWARD = 100
+UpgradeConfig.DAILY_MAX_STREAK = 7
+
+function UpgradeConfig.RebirthCost(rebirths)
+	return math.floor(UpgradeConfig.REBIRTH_BASE_COST * UpgradeConfig.REBIRTH_COST_GROWTH ^ rebirths)
+end
+
+-- コインの倍率（転生 × フレンド）
+function UpgradeConfig.Multiplier(rebirths, friendCount)
+	local friends = math.min(friendCount, UpgradeConfig.MAX_FRIENDS_COUNTED)
+	return (1 + rebirths * UpgradeConfig.REBIRTH_BONUS) * (1 + friends * UpgradeConfig.FRIEND_BONUS)
+end
+
+-- 連続ログイン n 日目の報酬
+function UpgradeConfig.DailyReward(streak, rebirths)
+	local day = math.min(streak, UpgradeConfig.DAILY_MAX_STREAK)
+	return UpgradeConfig.DAILY_BASE_REWARD * day * (1 + rebirths)
+end
+
 return UpgradeConfig

@@ -99,7 +99,7 @@ local STARTING_COINS = 0
 local CLICK_COOLDOWN = 0.1 -- 連打ツール対策（秒）
 
 -- 使うキーは必ず Combine する
-DataStore2.Combine("DATA", "coins")
+DataStore2.Combine("DATA", "coins", "rebirths", "lastDailyDay", "dailyStreak")
 for _, upgradeId in ipairs(UpgradeConfig.Order) do
 	DataStore2.Combine("DATA", UpgradeConfig.Upgrades[upgradeId].key)
 end
@@ -118,7 +118,20 @@ local coinPopup = Instance.new("RemoteEvent")
 coinPopup.Name = "CoinPopup"
 coinPopup.Parent = remotes
 
+local rebirthRemote = Instance.new("RemoteEvent")
+rebirthRemote.Name = "Rebirth"
+rebirthRemote.Parent = remotes
+
+-- 画面上部にお知らせを出す（text, 色）
+local announce = Instance.new("RemoteEvent")
+announce.Name = "Announce"
+announce.Parent = remotes
+
 remotes.Parent = ReplicatedStorage
+
+local ANNOUNCE_GOLD = Color3.fromRGB(255, 215, 80)
+local ANNOUNCE_PINK = Color3.fromRGB(255, 130, 200)
+local ANNOUNCE_GREEN = Color3.fromRGB(120, 255, 140)
 
 ---------------------------------------------------------------------
 -- ワールドを作る（地面・スポーン地点・コインの玉）
@@ -185,11 +198,14 @@ local function mirror(store, defaultValue, name, parent)
 	end)
 end
 
+local onPlayerLoaded -- 下で中身を決める
+
 local function onPlayerAdded(player)
 	-- 右上のリーダーボードに表示する
 	local leaderstats = Instance.new("Folder")
 	leaderstats.Name = "leaderstats"
 	mirror(DataStore2("coins", player), STARTING_COINS, "Coins", leaderstats)
+	mirror(DataStore2("rebirths", player), 0, "Rebirths", leaderstats)
 
 	-- アップグレードのレベル
 	local upgrades = Instance.new("Folder")
@@ -207,6 +223,100 @@ local function onPlayerAdded(player)
 	upgrades.Parent = player
 	leaderstats.Parent = player
 	loadedPlayers[player] = true
+
+	onPlayerLoaded(player)
+end
+
+---------------------------------------------------------------------
+-- 倍率（転生 × フレンドボーナス）
+---------------------------------------------------------------------
+local function getMultiplier(player)
+	return UpgradeConfig.Multiplier(DataStore2("rebirths", player):Get(0), player:GetAttribute("FriendCount") or 0)
+end
+
+local function refreshMultiplier(player)
+	player:SetAttribute("Multiplier", getMultiplier(player))
+end
+
+---------------------------------------------------------------------
+-- フレンドボーナス: 同じサーバーにいるフレンドの数を数える
+---------------------------------------------------------------------
+local friendCache = {}
+
+local function areFriends(a, b)
+	local key = math.min(a.UserId, b.UserId) .. ":" .. math.max(a.UserId, b.UserId)
+	if friendCache[key] == nil then
+		local ok, result = pcall(function()
+			return a:IsFriendsWith(b.UserId)
+		end)
+		friendCache[key] = ok and result or false
+	end
+	return friendCache[key]
+end
+
+local function updateFriendBonus()
+	for player in pairs(loadedPlayers) do
+		local count = 0
+		for other in pairs(loadedPlayers) do
+			if other ~= player and other.Parent and areFriends(player, other) then
+				count = count + 1
+			end
+		end
+
+		local before = player:GetAttribute("FriendCount") or 0
+		player:SetAttribute("FriendCount", count)
+		refreshMultiplier(player)
+
+		if count > before and count <= UpgradeConfig.MAX_FRIENDS_COUNTED then
+			announce:FireClient(
+				player,
+				string.format("フレンドボーナス！ コイン +%d%%", math.floor(count * UpgradeConfig.FRIEND_BONUS * 100 + 0.5)),
+				ANNOUNCE_PINK
+			)
+		end
+	end
+end
+
+---------------------------------------------------------------------
+-- ログインボーナス（連続ログインで増える）
+---------------------------------------------------------------------
+local function giveDailyReward(player)
+	local today = math.floor(os.time() / 86400)
+	local lastDayStore = DataStore2("lastDailyDay", player)
+	local lastDay = lastDayStore:Get(0)
+	if today <= lastDay then
+		return
+	end
+
+	local streakStore = DataStore2("dailyStreak", player)
+	local streak = 1
+	if lastDay == today - 1 then
+		streak = streakStore:Get(0) + 1
+	end
+
+	local reward = UpgradeConfig.DailyReward(streak, DataStore2("rebirths", player):Get(0))
+	lastDayStore:Set(today)
+	streakStore:Set(streak)
+	DataStore2("coins", player):Increment(reward, STARTING_COINS)
+
+	announce:FireClient(
+		player,
+		string.format("ログインボーナス %d日目！ +%d コイン（毎日来ると増えるよ）", streak, reward),
+		ANNOUNCE_GREEN
+	)
+end
+
+function onPlayerLoaded(player)
+	player:SetAttribute("FriendCount", 0)
+	refreshMultiplier(player)
+	updateFriendBonus()
+
+	-- 画面の準備ができるのを少し待ってから出す
+	task.delay(4, function()
+		if player.Parent and loadedPlayers[player] then
+			giveDailyReward(player)
+		end
+	end)
 end
 
 for _, player in ipairs(Players:GetPlayers()) do
@@ -230,7 +340,7 @@ clickDetector.MouseClick:Connect(function(player)
 	end
 	lastClick[player] = now
 
-	local amount = UpgradeConfig.CoinsPerClick(DataStore2("clickLevel", player):Get(0))
+	local amount = UpgradeConfig.CoinsPerClick(DataStore2("clickLevel", player):Get(0)) * getMultiplier(player)
 
 	-- 大当たり判定
 	local critChance = UpgradeConfig.CritChance(DataStore2("critLevel", player):Get(0))
@@ -238,6 +348,7 @@ clickDetector.MouseClick:Connect(function(player)
 	if isCrit then
 		amount = amount * UpgradeConfig.CRIT_MULTIPLIER
 	end
+	amount = math.floor(amount)
 
 	-- 値が変わったその場で更新する（保存は DataStore2 が退出時に自動で行う）
 	DataStore2("coins", player):Increment(amount, STARTING_COINS)
@@ -290,6 +401,7 @@ task.spawn(function()
 				DataStore2("autoLevel", player):Get(0),
 				DataStore2("factoryLevel", player):Get(0)
 			)
+			perSecond = math.floor(perSecond * getMultiplier(player))
 			if perSecond > 0 then
 				DataStore2("coins", player):Increment(perSecond, STARTING_COINS)
 			end
@@ -300,6 +412,137 @@ end)
 Players.PlayerRemoving:Connect(function(player)
 	loadedPlayers[player] = nil
 	lastClick[player] = nil
+	updateFriendBonus()
+end)
+
+---------------------------------------------------------------------
+-- 転生: コインとアップグレードをリセットして、ずっと続く倍率を得る
+---------------------------------------------------------------------
+rebirthRemote.OnServerEvent:Connect(function(player)
+	if not loadedPlayers[player] then
+		return
+	end
+
+	local rebirthStore = DataStore2("rebirths", player)
+	local rebirths = rebirthStore:Get(0)
+	local cost = UpgradeConfig.RebirthCost(rebirths)
+	local coinStore = DataStore2("coins", player)
+	if coinStore:Get(STARTING_COINS) < cost then
+		return
+	end
+
+	coinStore:Set(STARTING_COINS)
+	for _, upgradeId in ipairs(UpgradeConfig.Order) do
+		DataStore2(UpgradeConfig.Upgrades[upgradeId].key, player):Set(0)
+	end
+	rebirthStore:Set(rebirths + 1)
+	refreshMultiplier(player)
+
+	announce:FireAllClients(
+		string.format("%s が %d回目の転生！ 倍率 x%.1f", player.DisplayName, rebirths + 1, getMultiplier(player)),
+		ANNOUNCE_PINK
+	)
+end)
+
+---------------------------------------------------------------------
+-- ゴールデンコイン: ときどき出現する早い者勝ちボーナス
+---------------------------------------------------------------------
+local GOLDEN_MIN_WAIT = 120
+local GOLDEN_MAX_WAIT = 240
+local GOLDEN_LIFETIME = 30
+local goldenRng = Random.new()
+
+local function spawnGoldenCoin()
+	local angle = goldenRng:NextNumber(0, math.pi * 2)
+	local radius = goldenRng:NextNumber(15, 40)
+
+	local golden = Instance.new("Part")
+	golden.Name = "GoldenCoin"
+	golden.Shape = Enum.PartType.Ball
+	golden.Size = Vector3.new(4, 4, 4)
+	golden.Anchored = true
+	golden.CanCollide = false
+	golden.Material = Enum.Material.Neon
+	golden.Color = Color3.fromRGB(255, 230, 60)
+	golden.Position = Vector3.new(math.cos(angle) * radius, 3, math.sin(angle) * radius)
+
+	local glow = Instance.new("PointLight")
+	glow.Color = golden.Color
+	glow.Range = 20
+	glow.Brightness = 3
+	glow.Parent = golden
+
+	local sparkle = Instance.new("Sparkles")
+	sparkle.SparkleColor = golden.Color
+	sparkle.Parent = golden
+
+	local tag = Instance.new("BillboardGui")
+	tag.Size = UDim2.new(0, 220, 0, 40)
+	tag.StudsOffset = Vector3.new(0, 4, 0)
+	tag.AlwaysOnTop = true
+	tag.Parent = golden
+
+	local tagLabel = Instance.new("TextLabel")
+	tagLabel.Size = UDim2.new(1, 0, 1, 0)
+	tagLabel.BackgroundTransparency = 1
+	tagLabel.Text = "ゴールデンコイン！"
+	tagLabel.TextColor3 = golden.Color
+	tagLabel.TextStrokeTransparency = 0
+	tagLabel.TextScaled = true
+	tagLabel.Font = Enum.Font.GothamBlack
+	tagLabel.Parent = tag
+
+	local detector = Instance.new("ClickDetector")
+	detector.MaxActivationDistance = 60
+	detector.Parent = golden
+
+	local claimed = false
+	local function claim(player)
+		if claimed or not player or not loadedPlayers[player] then
+			return
+		end
+		claimed = true
+
+		local perClick = UpgradeConfig.CoinsPerClick(DataStore2("clickLevel", player):Get(0))
+		local perSecond = UpgradeConfig.CoinsPerSecond(
+			DataStore2("autoLevel", player):Get(0),
+			DataStore2("factoryLevel", player):Get(0)
+		)
+		local reward = math.floor(math.max(100, perClick * 50 + perSecond * 60) * getMultiplier(player))
+		DataStore2("coins", player):Increment(reward, STARTING_COINS)
+
+		announce:FireAllClients(
+			string.format("%s がゴールデンコインをゲット！ +%d", player.DisplayName, reward),
+			ANNOUNCE_GOLD
+		)
+		golden:Destroy()
+	end
+
+	detector.MouseClick:Connect(claim)
+	golden.Touched:Connect(function(hit)
+		if hit.Parent then
+			claim(Players:GetPlayerFromCharacter(hit.Parent))
+		end
+	end)
+
+	golden.Parent = Workspace
+	announce:FireAllClients("ゴールデンコインが出現！ 早い者勝ち！", ANNOUNCE_GOLD)
+
+	task.delay(GOLDEN_LIFETIME, function()
+		if not claimed then
+			claimed = true
+			golden:Destroy()
+		end
+	end)
+end
+
+task.spawn(function()
+	while true do
+		task.wait(goldenRng:NextNumber(GOLDEN_MIN_WAIT, GOLDEN_MAX_WAIT))
+		if next(loadedPlayers) then
+			spawnGoldenCoin()
+		end
+	end
 end)
 
 ---------------------------------------------------------------------
