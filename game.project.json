@@ -27,6 +27,9 @@
 			"$className": "ReplicatedStorage",
 			"UpgradeConfig": {
 				"$path": "game/src/shared/UpgradeConfig.lua"
+			},
+			"Locale": {
+				"$path": "game/src/shared/Locale.lua"
 			}
 		},
 		"ServerStorage": {

@@ -13,30 +13,22 @@ UpgradeConfig.FACTORY_COINS_PER_LEVEL = 10
 UpgradeConfig.Upgrades = {
 	click = {
 		key = "clickLevel", -- DataStore2 のキー名
-		name = "クリック強化",
-		description = "1クリックのコイン +1",
 		baseCost = 10,
 		growth = 1.5,
 	},
 	auto = {
 		key = "autoLevel",
-		name = "自動コイン",
-		description = "毎秒のコイン +1",
 		baseCost = 25,
 		growth = 1.6,
 	},
 	crit = {
 		key = "critLevel",
-		name = "大当たり",
-		description = "5%の確率でコイン10倍",
 		baseCost = 100,
 		growth = 1.8,
 		maxLevel = 10, -- 最大 50%
 	},
 	factory = {
 		key = "factoryLevel",
-		name = "コイン工場",
-		description = "毎秒のコイン +10",
 		baseCost = 500,
 		growth = 1.7,
 	},
@@ -108,14 +100,10 @@ end
 UpgradeConfig.GamePasses = {
 	doubleCoins = {
 		id = 2087840383,
-		name = "コイン2倍",
-		description = "ずっとコインが2倍！",
 		price = 99,
 	},
 	autoClick = {
 		id = 2088056363,
-		name = "オートクリック",
-		description = "毎秒3回、自動でクリック",
 		price = 149,
 	},
 }
@@ -125,16 +113,12 @@ UpgradeConfig.AUTO_CLICKS_PER_SECOND = 3
 UpgradeConfig.Products = {
 	smallPack = {
 		id = 3730798651,
-		name = "コインパック（小）",
-		description = "10分ぶんのコインをすぐゲット",
 		price = 25,
 		minutes = 10,
 		minimum = 1000,
 	},
 	bigPack = {
 		id = 3730798682,
-		name = "コインパック（大）",
-		description = "1時間ぶんのコインをすぐゲット",
 		price = 99,
 		minutes = 60,
 		minimum = 10000,

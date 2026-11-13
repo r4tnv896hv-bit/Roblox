@@ -59,7 +59,8 @@ def main():
     replicated = item(
         "ReplicatedStorage", "ReplicatedStorage",
         children=item("ModuleScript", "UpgradeConfig",
-                      read(os.path.join(ROOT, "game/src/shared/UpgradeConfig.lua"))),
+                      read(os.path.join(ROOT, "game/src/shared/UpgradeConfig.lua")))
+        + item("ModuleScript", "Locale", read(os.path.join(ROOT, "game/src/shared/Locale.lua"))),
     )
     with open(OUT, "w", encoding="utf-8") as f:
         f.write('<roblox version="4">\n' + server + replicated + starter + "</roblox>\n")

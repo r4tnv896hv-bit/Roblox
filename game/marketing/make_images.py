@@ -92,7 +92,24 @@ def make_icon():
     img.convert("RGB").save(os.path.join(OUT, "icon_512.png"))
 
 
-def make_thumbnail():
+THUMB_TEXT = {
+    "ja": {
+        "file": "thumbnail_1920x1080.png",
+        "tag": "【転生】", "title": "コインクリッカー", "subtitle": "シミュレーター",
+        "lines": ["転生で倍率アップ！", "友だちと遊ぶとコイン+20%", "毎日ログインボーナス！"],
+        "crit": "大当たり!", "title_size": 150, "line_size": 64,
+    },
+    "en": {
+        "file": "thumbnail_en_1920x1080.png",
+        "tag": "[REBIRTH]", "title": "COIN CLICKER", "subtitle": "SIMULATOR",
+        "lines": ["Rebirth for bigger multipliers!", "+20% coins with friends", "Daily login rewards!"],
+        "crit": "CRIT!", "title_size": 150, "line_size": 54,
+    },
+}
+
+
+def make_thumbnail(lang="ja"):
+    t = THUMB_TEXT[lang]
     size = (1920, 1080)
     img = gradient(size, (255, 150, 90), (110, 50, 160)).convert("RGBA")
     center = (560, 600)
@@ -104,25 +121,26 @@ def make_thumbnail():
     for _ in range(40):
         sparkle(d, rng.randint(20, 1900), rng.randint(20, 1060), rng.randint(10, 26))
 
-    text(d, (1350, 230), "【転生】", 110, GOLD_LIGHT)
-    text(d, (1340, 390), "コインクリッカー", 150, (255, 255, 255), stroke_width=14)
-    text(d, (1350, 540), "シミュレーター", 120, GOLD, stroke_width=12)
+    text(d, (1350, 230), t["tag"], 110, GOLD_LIGHT)
+    text(d, (1340, 390), t["title"], t["title_size"], (255, 255, 255), stroke_width=14)
+    text(d, (1350, 540), t["subtitle"], 120, GOLD, stroke_width=12)
 
-    lines = ["転生で倍率アップ！", "友だちと遊ぶとコイン+20%", "毎日ログインボーナス！"]
+    lines = t["lines"]
     for i, line in enumerate(lines):
         y = 700 + i * 105
         box = Image.new("RGBA", size, (0, 0, 0, 0))
         ImageDraw.Draw(box).rounded_rectangle([960, y - 45, 1760, y + 45], 30, fill=(40, 20, 70, 190))
         img.alpha_composite(box)
         d = ImageDraw.Draw(img)
-        text(d, (1360, y), line, 64, (255, 255, 255), stroke_width=5)
+        text(d, (1360, y), line, t["line_size"], (255, 255, 255), stroke_width=5)
 
     text(d, (300, 220), "+1,000", 110, GOLD_LIGHT, stroke_width=11)
-    text(d, (860, 170), "大当たり!", 100, (255, 90, 60), stroke=(255, 255, 255), stroke_width=10)
-    img.convert("RGB").save(os.path.join(OUT, "thumbnail_1920x1080.png"))
+    text(d, (860, 170), t["crit"], 100, (255, 90, 60), stroke=(255, 255, 255), stroke_width=10)
+    img.convert("RGB").save(os.path.join(OUT, t["file"]))
 
 
 if __name__ == "__main__":
     make_icon()
-    make_thumbnail()
+    make_thumbnail("ja")
+    make_thumbnail("en")
     print("done")

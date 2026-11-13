@@ -5,6 +5,126 @@
     </Properties>
     <Item class="ModuleScript" referent="1">
       <Properties>
+        <string name="Name">Locale</string>
+        <string name="Source"><![CDATA[-- 表示する文字の翻訳表（英語が基本。日本語の設定の人には日本語で出す）
+-- 数字はクライアント側でカンマ付きの文字にしてから渡すので、整数は %s で受け取る。
+local Locale = {}
+
+local STRINGS = {
+	en = {
+		-- 画面
+		coins_label = "Coins: %s",
+		rate = "Per click +%s · Per sec +%s · Crit %s%% · x%.1f",
+		shop_title = "Upgrades",
+		upgrade_button = "%s  Lv.%s\n%s\nCost: %s coins",
+		upgrade_max = "%s  Lv.%s\nMAX LEVEL",
+		rebirth_button = "Rebirth (#%s)\nReset all → Multiplier +%.1f\nNeed: %s coins",
+		rebirth_confirm = "Are you sure?\nTap again to rebirth!",
+		invite = "Invite friends! +%s%% coins each",
+		special_shop = "Special Shop",
+		owned = "Owned",
+		crit_popup = "CRIT! +%s",
+		click_me = "Click for coins!",
+		ranking_title = "Top Coins",
+
+		-- お知らせ
+		announce_friend = "Friend bonus! Coins +%s%%",
+		announce_daily = "Daily bonus day %s! +%s coins (come back tomorrow for more)",
+		announce_rebirth = "%s rebirthed! (#%s) Multiplier x%.1f",
+		announce_golden_spawn = "A Golden Coin appeared! First come, first served!",
+		announce_golden_got = "%s grabbed the Golden Coin! +%s",
+		announce_pass = "%s got %s!",
+		announce_pack = "%s bought %s: +%s coins!",
+
+		-- アップグレード
+		upgrade_click_name = "Click Power",
+		upgrade_click_desc = "+1 coin per click",
+		upgrade_auto_name = "Auto Coins",
+		upgrade_auto_desc = "+1 coin per second",
+		upgrade_crit_name = "Lucky Crit",
+		upgrade_crit_desc = "5% chance for 10x coins",
+		upgrade_factory_name = "Coin Factory",
+		upgrade_factory_desc = "+10 coins per second",
+
+		-- 課金アイテム
+		pass_doubleCoins_name = "2x Coins",
+		pass_doubleCoins_desc = "Double coins forever!",
+		pass_autoClick_name = "Auto Clicker",
+		pass_autoClick_desc = "Clicks 3 times every second",
+		product_smallPack_name = "Coin Pack (S)",
+		product_smallPack_desc = "Get 10 minutes of coins now",
+		product_bigPack_name = "Coin Pack (L)",
+		product_bigPack_desc = "Get 1 hour of coins now",
+	},
+	ja = {
+		coins_label = "コイン: %s",
+		rate = "1クリック +%s ・ 毎秒 +%s ・ 大当たり %s%% ・ 倍率 x%.1f",
+		shop_title = "ショップ",
+		upgrade_button = "%s  Lv.%s\n%s\n費用: %s コイン",
+		upgrade_max = "%s  Lv.%s\n最大レベル",
+		rebirth_button = "転生（%s回目）\n全部リセット → 倍率 +%.1f\n必要: %s コイン",
+		rebirth_confirm = "本当に転生する？\nもう一度押すと転生！",
+		invite = "友だちを招待！ 1人ごとにコイン +%s%%",
+		special_shop = "スペシャルショップ",
+		owned = "購入済み",
+		crit_popup = "大当たり! +%s",
+		click_me = "クリックでコイン！",
+		ranking_title = "コインランキング",
+
+		announce_friend = "フレンドボーナス！ コイン +%s%%",
+		announce_daily = "ログインボーナス %s日目！ +%s コイン（毎日来ると増えるよ）",
+		announce_rebirth = "%s が %s回目の転生！ 倍率 x%.1f",
+		announce_golden_spawn = "ゴールデンコインが出現！ 早い者勝ち！",
+		announce_golden_got = "%s がゴールデンコインをゲット！ +%s",
+		announce_pass = "%s が「%s」をゲット！",
+		announce_pack = "%s が%sで +%s コイン！",
+
+		upgrade_click_name = "クリック強化",
+		upgrade_click_desc = "1クリックのコイン +1",
+		upgrade_auto_name = "自動コイン",
+		upgrade_auto_desc = "毎秒のコイン +1",
+		upgrade_crit_name = "大当たり",
+		upgrade_crit_desc = "5%の確率でコイン10倍",
+		upgrade_factory_name = "コイン工場",
+		upgrade_factory_desc = "毎秒のコイン +10",
+
+		pass_doubleCoins_name = "コイン2倍",
+		pass_doubleCoins_desc = "ずっとコインが2倍！",
+		pass_autoClick_name = "オートクリック",
+		pass_autoClick_desc = "毎秒3回、自動でクリック",
+		product_smallPack_name = "コインパック（小）",
+		product_smallPack_desc = "10分ぶんのコインをすぐゲット",
+		product_bigPack_name = "コインパック（大）",
+		product_bigPack_desc = "1時間ぶんのコインをすぐゲット",
+	},
+}
+
+-- プレイヤーの言語設定から "ja" か "en" を選ぶ
+function Locale.GetLanguage(player)
+	local localeId = string.lower(player.LocaleId or "")
+	if string.sub(localeId, 1, 2) == "ja" then
+		return "ja"
+	end
+	return "en"
+end
+
+function Locale.Get(language, key, ...)
+	local text = (STRINGS[language] and STRINGS[language][key]) or STRINGS.en[key] or key
+	if select("#", ...) > 0 then
+		local ok, result = pcall(string.format, text, ...)
+		if ok then
+			return result
+		end
+	end
+	return text
+end
+
+return Locale
+]]></string>
+      </Properties>
+    </Item>
+    <Item class="ModuleScript" referent="2">
+      <Properties>
         <string name="Name">UpgradeConfig</string>
         <string name="Source"><![CDATA[-- アップグレードの設定（サーバーとクライアントの両方で使う）
 local UpgradeConfig = {}
@@ -21,30 +141,22 @@ UpgradeConfig.FACTORY_COINS_PER_LEVEL = 10
 UpgradeConfig.Upgrades = {
 	click = {
 		key = "clickLevel", -- DataStore2 のキー名
-		name = "クリック強化",
-		description = "1クリックのコイン +1",
 		baseCost = 10,
 		growth = 1.5,
 	},
 	auto = {
 		key = "autoLevel",
-		name = "自動コイン",
-		description = "毎秒のコイン +1",
 		baseCost = 25,
 		growth = 1.6,
 	},
 	crit = {
 		key = "critLevel",
-		name = "大当たり",
-		description = "5%の確率でコイン10倍",
 		baseCost = 100,
 		growth = 1.8,
 		maxLevel = 10, -- 最大 50%
 	},
 	factory = {
 		key = "factoryLevel",
-		name = "コイン工場",
-		description = "毎秒のコイン +10",
 		baseCost = 500,
 		growth = 1.7,
 	},
@@ -116,14 +228,10 @@ end
 UpgradeConfig.GamePasses = {
 	doubleCoins = {
 		id = 2087840383,
-		name = "コイン2倍",
-		description = "ずっとコインが2倍！",
 		price = 99,
 	},
 	autoClick = {
 		id = 2088056363,
-		name = "オートクリック",
-		description = "毎秒3回、自動でクリック",
 		price = 149,
 	},
 }
@@ -133,16 +241,12 @@ UpgradeConfig.AUTO_CLICKS_PER_SECOND = 3
 UpgradeConfig.Products = {
 	smallPack = {
 		id = 3730798651,
-		name = "コインパック（小）",
-		description = "10分ぶんのコインをすぐゲット",
 		price = 25,
 		minutes = 10,
 		minimum = 1000,
 	},
 	bigPack = {
 		id = 3730798682,
-		name = "コインパック（大）",
-		description = "1時間ぶんのコインをすぐゲット",
 		price = 99,
 		minutes = 60,
 		minimum = 10000,
@@ -161,11 +265,11 @@ return UpgradeConfig
       </Properties>
     </Item>
   </Item>
-  <Item class="ServerScriptService" referent="2">
+  <Item class="ServerScriptService" referent="3">
     <Properties>
       <string name="Name">ServerScriptService</string>
     </Properties>
-    <Item class="ModuleScript" referent="3">
+    <Item class="ModuleScript" referent="4">
       <Properties>
         <string name="Name">DataStore2</string>
         <string name="Source"><![CDATA[--[[
@@ -783,7 +887,7 @@ DataStore2.Constants = Constants
 return setmetatable(DataStore2, DataStore2)
 ]]></string>
       </Properties>
-      <Item class="ModuleScript" referent="4">
+      <Item class="ModuleScript" referent="5">
         <Properties>
           <string name="Name">Constants</string>
           <string name="Source"><![CDATA[local function symbol(text)
@@ -804,7 +908,7 @@ return {
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="5">
+      <Item class="ModuleScript" referent="6">
         <Properties>
           <string name="Name">DataStoreServiceRetriever</string>
           <string name="Source"><![CDATA[-- This function is monkey patched to return MockDataStoreService during tests
@@ -820,7 +924,7 @@ return DataStoreServiceRetriever
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="6">
+      <Item class="ModuleScript" referent="7">
         <Properties>
           <string name="Name">IsPlayer</string>
           <string name="Source"><![CDATA[-- This function is monkey patched to return MockDataStoreService during tests
@@ -834,7 +938,7 @@ return IsPlayer
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="7">
+      <Item class="ModuleScript" referent="8">
         <Properties>
           <string name="Name">Promise</string>
           <string name="Source"><![CDATA[--[[
@@ -2230,7 +2334,7 @@ return Promise
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="8">
+      <Item class="ModuleScript" referent="9">
         <Properties>
           <string name="Name">SavingMethods</string>
           <string name="Source"><![CDATA[return {
@@ -2239,7 +2343,7 @@ return Promise
 }
 ]]></string>
         </Properties>
-        <Item class="ModuleScript" referent="9">
+        <Item class="ModuleScript" referent="10">
           <Properties>
             <string name="Name">OrderedBackups</string>
             <string name="Source"><![CDATA[--[[
@@ -2318,7 +2422,7 @@ return OrderedBackups
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="10">
+        <Item class="ModuleScript" referent="11">
           <Properties>
             <string name="Name">Standard</string>
             <string name="Source"><![CDATA[-- Standard saving of data stores
@@ -2358,7 +2462,7 @@ return Standard
           </Properties>
         </Item>
       </Item>
-      <Item class="ModuleScript" referent="11">
+      <Item class="ModuleScript" referent="12">
         <Properties>
           <string name="Name">Settings</string>
           <string name="Source"><![CDATA[return {
@@ -2371,7 +2475,7 @@ return Standard
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="12">
+      <Item class="ModuleScript" referent="13">
         <Properties>
           <string name="Name">TableUtil</string>
           <string name="Source"><![CDATA[local TableUtil = {}
@@ -2394,7 +2498,7 @@ return TableUtil
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="13">
+      <Item class="ModuleScript" referent="14">
         <Properties>
           <string name="Name">Verifier</string>
           <string name="Source"><![CDATA[-- Written by Coercii
@@ -2481,7 +2585,7 @@ return Verifier
         </Properties>
       </Item>
     </Item>
-    <Item class="Script" referent="14">
+    <Item class="Script" referent="15">
       <Properties>
         <string name="Name">Decor</string>
         <token name="RunContext">0</token>
@@ -2717,7 +2821,7 @@ end
 ]]></string>
       </Properties>
     </Item>
-    <Item class="Script" referent="15">
+    <Item class="Script" referent="16">
       <Properties>
         <string name="Name">Main</string>
         <token name="RunContext">0</token>
@@ -2811,7 +2915,7 @@ if RunService:IsStudio() then
 	end)
 
 	if not dataStoresAvailable then
-		warn("[CoinClicker] DataStore が使えないので、Studio 用の仮保存で動かします（停止するとデータは消えます）。")
+		warn("[CoinClicker] DataStore unavailable; using temporary in-memory saves for Studio (data resets when you stop).")
 		local offlineService = createOfflineDataStoreService()
 		require(ServerScriptService.DataStore2.DataStoreServiceRetriever).Get = function()
 			return offlineService
@@ -2898,7 +3002,7 @@ billboard.Parent = coinButton
 local billboardLabel = Instance.new("TextLabel")
 billboardLabel.Size = UDim2.new(1, 0, 1, 0)
 billboardLabel.BackgroundTransparency = 1
-billboardLabel.Text = "クリックでコイン！"
+billboardLabel.Text = "Click for coins!" -- クライアント側で言語に合わせて書き換える
 billboardLabel.TextColor3 = Color3.new(1, 1, 1)
 billboardLabel.TextStrokeTransparency = 0
 billboardLabel.TextScaled = true
@@ -2998,8 +3102,9 @@ local function updateFriendBonus()
 		if count > before and count <= UpgradeConfig.MAX_FRIENDS_COUNTED then
 			announce:FireClient(
 				player,
-				string.format("フレンドボーナス！ コイン +%d%%", math.floor(count * UpgradeConfig.FRIEND_BONUS * 100 + 0.5)),
-				ANNOUNCE_PINK
+				"announce_friend",
+				ANNOUNCE_PINK,
+				math.floor(count * UpgradeConfig.FRIEND_BONUS * 100 + 0.5)
 			)
 		end
 	end
@@ -3027,11 +3132,7 @@ local function giveDailyReward(player)
 	streakStore:Set(streak)
 	DataStore2("coins", player):Increment(reward, STARTING_COINS)
 
-	announce:FireClient(
-		player,
-		string.format("ログインボーナス %d日目！ +%d コイン（毎日来ると増えるよ）", streak, reward),
-		ANNOUNCE_GREEN
-	)
+	announce:FireClient(player, "announce_daily", ANNOUNCE_GREEN, streak, reward)
 end
 
 -- 持っているゲームパスを属性に書く（Pass_doubleCoins など）
@@ -3185,10 +3286,7 @@ rebirthRemote.OnServerEvent:Connect(function(player)
 	rebirthStore:Set(rebirths + 1)
 	refreshMultiplier(player)
 
-	announce:FireAllClients(
-		string.format("%s が %d回目の転生！ 倍率 x%.1f", player.DisplayName, rebirths + 1, getMultiplier(player)),
-		ANNOUNCE_PINK
-	)
+	announce:FireAllClients("announce_rebirth", ANNOUNCE_PINK, player.DisplayName, rebirths + 1, getMultiplier(player))
 end)
 
 ---------------------------------------------------------------------
@@ -3232,7 +3330,7 @@ local function spawnGoldenCoin()
 	local tagLabel = Instance.new("TextLabel")
 	tagLabel.Size = UDim2.new(1, 0, 1, 0)
 	tagLabel.BackgroundTransparency = 1
-	tagLabel.Text = "ゴールデンコイン！"
+	tagLabel.Text = "GOLDEN COIN!"
 	tagLabel.TextColor3 = golden.Color
 	tagLabel.TextStrokeTransparency = 0
 	tagLabel.TextScaled = true
@@ -3258,10 +3356,7 @@ local function spawnGoldenCoin()
 		local reward = math.floor(math.max(100, perClick * 50 + perSecond * 60) * getMultiplier(player))
 		DataStore2("coins", player):Increment(reward, STARTING_COINS)
 
-		announce:FireAllClients(
-			string.format("%s がゴールデンコインをゲット！ +%d", player.DisplayName, reward),
-			ANNOUNCE_GOLD
-		)
+		announce:FireAllClients("announce_golden_got", ANNOUNCE_GOLD, player.DisplayName, reward)
 		golden:Destroy()
 	end
 
@@ -3273,7 +3368,7 @@ local function spawnGoldenCoin()
 	end)
 
 	golden.Parent = Workspace
-	announce:FireAllClients("ゴールデンコインが出現！ 早い者勝ち！", ANNOUNCE_GOLD)
+	announce:FireAllClients("announce_golden_spawn", ANNOUNCE_GOLD)
 
 	task.delay(GOLDEN_LIFETIME, function()
 		if not claimed then
@@ -3336,12 +3431,14 @@ local RANK_COLORS = {
 	Color3.fromRGB(205, 127, 50), -- 3位 銅
 }
 
-makeBoardLabel(0, 0.12, Color3.fromRGB(255, 220, 80)).Text = "コインランキング"
+local boardTitle = makeBoardLabel(0, 0.12, Color3.fromRGB(255, 220, 80))
+boardTitle.Name = "RankingTitle"
+boardTitle.Text = "Top Coins" -- クライアント側で言語に合わせて書き換える
 local rankLabels = {}
 for rank = 1, RANKING_SIZE do
 	rankLabels[rank] = makeBoardLabel(rank, 0.08, RANK_COLORS[rank] or Color3.new(1, 1, 1))
 end
-rankLabels[1].Text = "読み込み中..."
+rankLabels[1].Text = "Loading..."
 
 local nameCache = {}
 local function getName(userId)
@@ -3376,7 +3473,7 @@ local function updateRanking()
 		return rankingStore:GetSortedAsync(false, RANKING_SIZE):GetCurrentPage()
 	end)
 	if not ok then
-		rankLabels[1].Text = "ランキングを読み込めません"
+		rankLabels[1].Text = "Ranking unavailable"
 		return
 	end
 
@@ -3389,7 +3486,7 @@ local function updateRanking()
 		end
 	end
 	if not entries[1] then
-		rankLabels[1].Text = "まだ記録がありません"
+		rankLabels[1].Text = "No records yet"
 	end
 end
 
@@ -3402,7 +3499,7 @@ if rankingOk then
 		end
 	end)
 else
-	rankLabels[1].Text = "ランキングは公開後に動きます"
+	rankLabels[1].Text = "Ranking works after publishing"
 end
 
 
@@ -3417,7 +3514,7 @@ MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, passI
 		if pass.id == passId then
 			player:SetAttribute("Pass_" .. passKey, true)
 			refreshMultiplier(player)
-			announce:FireAllClients(string.format("%s が「%s」をゲット！", player.DisplayName, pass.name), ANNOUNCE_PINK)
+			announce:FireAllClients("announce_pass", ANNOUNCE_PINK, player.DisplayName, "@pass_" .. passKey .. "_name")
 		end
 	end
 end)
@@ -3427,12 +3524,12 @@ end)
 -- 同じ購入を2回渡さないよう、購入 ID を記録してから保存する
 ---------------------------------------------------------------------
 local function findProduct(productId)
-	for _, product in pairs(UpgradeConfig.Products) do
+	for productKey, product in pairs(UpgradeConfig.Products) do
 		if product.id ~= 0 and product.id == productId then
-			return product
+			return product, productKey
 		end
 	end
-	return nil
+	return nil, nil
 end
 
 MarketplaceService.ProcessReceipt = function(receipt)
@@ -3441,7 +3538,7 @@ MarketplaceService.ProcessReceipt = function(receipt)
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 
-	local product = findProduct(receipt.ProductId)
+	local product, productKey = findProduct(receipt.ProductId)
 	if not product then
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
@@ -3473,36 +3570,33 @@ MarketplaceService.ProcessReceipt = function(receipt)
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 
-	announce:FireAllClients(
-		string.format("%s が%sで +%d コイン！", player.DisplayName, product.name, reward),
-		ANNOUNCE_GOLD
-	)
+	announce:FireAllClients("announce_pack", ANNOUNCE_GOLD, player.DisplayName, "@product_" .. productKey .. "_name", reward)
 	return Enum.ProductPurchaseDecision.PurchaseGranted
 end
 ]]></string>
       </Properties>
     </Item>
   </Item>
-  <Item class="ServerStorage" referent="16">
+  <Item class="ServerStorage" referent="17">
     <Properties>
       <string name="Name">ServerStorage</string>
     </Properties>
-    <Item class="BoolValue" referent="17">
+    <Item class="BoolValue" referent="18">
       <Properties>
         <string name="Name">SaveInStudio</string>
         <bool name="Value">true</bool>
       </Properties>
     </Item>
   </Item>
-  <Item class="StarterPlayer" referent="18">
+  <Item class="StarterPlayer" referent="19">
     <Properties>
       <string name="Name">StarterPlayer</string>
     </Properties>
-    <Item class="StarterPlayerScripts" referent="19">
+    <Item class="StarterPlayerScripts" referent="20">
       <Properties>
         <string name="Name">StarterPlayerScripts</string>
       </Properties>
-      <Item class="LocalScript" referent="20">
+      <Item class="LocalScript" referent="21">
         <Properties>
           <string name="Name">CoinGui</string>
           <string name="Source"><![CDATA[-- コインクリッカー: 画面表示（コイン数・ショップ・クリック演出）
@@ -3514,6 +3608,7 @@ local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local UpgradeConfig = require(ReplicatedStorage:WaitForChild("UpgradeConfig"))
+local Locale = require(ReplicatedStorage:WaitForChild("Locale"))
 
 local remotes = ReplicatedStorage:WaitForChild("CoinClickerRemotes")
 local buyUpgrade = remotes:WaitForChild("BuyUpgrade")
@@ -3522,6 +3617,11 @@ local rebirthRemote = remotes:WaitForChild("Rebirth")
 local announceRemote = remotes:WaitForChild("Announce")
 
 local player = Players.LocalPlayer
+local language = Locale.GetLanguage(player)
+
+local function L(key, ...)
+	return Locale.Get(language, key, ...)
+end
 local playerGui = player:WaitForChild("PlayerGui")
 local upgradesFolder = player:WaitForChild("Upgrades")
 local leaderstats = player:WaitForChild("leaderstats")
@@ -3608,12 +3708,12 @@ end
 
 local function updateTop()
 	local multiplier = getMultiplier()
-	coinLabel.Text = "コイン: " .. formatNumber(coins.Value)
-	rateLabel.Text = string.format(
-		"1クリック +%s ・ 毎秒 +%s ・ 大当たり %d%% ・ 倍率 x%.1f",
+	coinLabel.Text = L("coins_label", formatNumber(coins.Value))
+	rateLabel.Text = L(
+		"rate",
 		formatNumber(math.floor(UpgradeConfig.CoinsPerClick(clickLevel.Value) * multiplier)),
 		formatNumber(math.floor(UpgradeConfig.CoinsPerSecond(autoLevel.Value, factoryLevel.Value) * multiplier)),
-		math.floor(UpgradeConfig.CritChance(critLevel.Value) * 100 + 0.5),
+		formatNumber(math.floor(UpgradeConfig.CritChance(critLevel.Value) * 100 + 0.5)),
 		multiplier
 	)
 end
@@ -3657,7 +3757,7 @@ local title = Instance.new("TextLabel")
 title.LayoutOrder = 0
 title.Size = UDim2.new(1, 0, 0, 28)
 title.BackgroundTransparency = 1
-title.Text = "ショップ"
+title.Text = L("shop_title")
 title.TextColor3 = GOLD
 title.TextScaled = true
 title.Font = Enum.Font.GothamBold
@@ -3683,17 +3783,17 @@ for index, upgradeId in ipairs(UpgradeConfig.Order) do
 	local function update()
 		local level = levelValue.Value
 		if level >= UpgradeConfig.GetMaxLevel(upgradeId) then
-			button.Text = string.format("%s  Lv.%d\n最大レベル", upgrade.name, level)
+			button.Text = L("upgrade_max", L("upgrade_" .. upgradeId .. "_name"), formatNumber(level))
 			button.BackgroundColor3 = CANNOT_BUY
 			return
 		end
 
 		local cost = UpgradeConfig.GetCost(upgradeId, level)
-		button.Text = string.format(
-			"%s  Lv.%d\n%s\n費用: %s コイン",
-			upgrade.name,
-			level,
-			upgrade.description,
+		button.Text = L(
+			"upgrade_button",
+			L("upgrade_" .. upgradeId .. "_name"),
+			formatNumber(level),
+			L("upgrade_" .. upgradeId .. "_desc"),
 			formatNumber(cost)
 		)
 		button.BackgroundColor3 = coins.Value >= cost and CAN_BUY or CANNOT_BUY
@@ -3732,12 +3832,7 @@ local function updateRebirth()
 		return
 	end
 	local cost = UpgradeConfig.RebirthCost(rebirths.Value)
-	rebirthButton.Text = string.format(
-		"転生（%d回目）\n全部リセット → 倍率 +%.1f\n必要: %s コイン",
-		rebirths.Value + 1,
-		UpgradeConfig.REBIRTH_BONUS,
-		formatNumber(cost)
-	)
+	rebirthButton.Text = L("rebirth_button", formatNumber(rebirths.Value + 1), UpgradeConfig.REBIRTH_BONUS, formatNumber(cost))
 	rebirthButton.BackgroundColor3 = coins.Value >= cost and REBIRTH_COLOR or CANNOT_BUY
 end
 
@@ -3753,7 +3848,7 @@ rebirthButton.Activated:Connect(function()
 	end
 
 	confirming = true
-	rebirthButton.Text = "本当に転生する？\nもう一度押すと転生！"
+	rebirthButton.Text = L("rebirth_confirm")
 	task.delay(3, function()
 		confirming = false
 		updateRebirth()
@@ -3775,7 +3870,7 @@ inviteButton.BackgroundColor3 = Color3.fromRGB(230, 80, 150)
 inviteButton.TextColor3 = Color3.new(1, 1, 1)
 inviteButton.TextScaled = true
 inviteButton.Font = Enum.Font.GothamBold
-inviteButton.Text = string.format("友だちを招待！ 1人ごとにコイン +%d%%", math.floor(UpgradeConfig.FRIEND_BONUS * 100 + 0.5))
+inviteButton.Text = L("invite", formatNumber(math.floor(UpgradeConfig.FRIEND_BONUS * 100 + 0.5)))
 inviteButton.Visible = false
 inviteButton.Parent = screenGui
 addCorner(inviteButton, 12)
@@ -3820,7 +3915,22 @@ toastLayout.Parent = toastArea
 
 local toastCount = 0
 
-announceRemote.OnClientEvent:Connect(function(text, color)
+-- サーバーからは「文字の種類(key)・色・数字や名前」が届くので、ここで自分の言語の文にする
+local function localizeArg(arg)
+	if type(arg) == "number" and arg == math.floor(arg) then
+		return formatNumber(arg)
+	elseif type(arg) == "string" and string.sub(arg, 1, 1) == "@" then
+		return L(string.sub(arg, 2))
+	end
+	return arg
+end
+
+announceRemote.OnClientEvent:Connect(function(key, color, ...)
+	local args = { ... }
+	for i = 1, select("#", ...) do
+		args[i] = localizeArg(args[i])
+	end
+	local text = L(key, table.unpack(args, 1, select("#", ...)))
 	toastCount = toastCount + 1
 
 	local toast = Instance.new("TextLabel")
@@ -3897,13 +4007,13 @@ local robuxTitle = Instance.new("TextLabel")
 robuxTitle.LayoutOrder = 0
 robuxTitle.Size = UDim2.new(1, 0, 0, 28)
 robuxTitle.BackgroundTransparency = 1
-robuxTitle.Text = "スペシャルショップ"
+robuxTitle.Text = L("special_shop")
 robuxTitle.TextColor3 = GOLD
 robuxTitle.TextScaled = true
 robuxTitle.Font = Enum.Font.GothamBold
 robuxTitle.Parent = robuxShop
 
-local function makeRobuxButton(order, item, infoType, onClick)
+local function makeRobuxButton(order, item, textKey, infoType, onClick)
 	local button = Instance.new("TextButton")
 	button.LayoutOrder = order
 	button.Size = UDim2.new(1, 0, 0, 64)
@@ -3919,7 +4029,7 @@ local function makeRobuxButton(order, item, infoType, onClick)
 
 	local price = item.price
 	local function setText(suffix)
-		button.Text = string.format("%s\n%s\n%s", item.name, item.description, suffix)
+		button.Text = string.format("%s\n%s\n%s", L(textKey .. "_name"), L(textKey .. "_desc"), suffix)
 	end
 	setText("R$ " .. price)
 
@@ -3946,7 +4056,7 @@ for index, passKey in ipairs(UpgradeConfig.GamePassOrder) do
 	if pass.id ~= 0 then
 		local attribute = "Pass_" .. passKey
 		local button, setText
-		button, setText = makeRobuxButton(index, pass, Enum.InfoType.GamePass, function()
+		button, setText = makeRobuxButton(index, pass, "pass_" .. passKey, Enum.InfoType.GamePass, function()
 			if player:GetAttribute(attribute) ~= true then
 				MarketplaceService:PromptGamePassPurchase(player, pass.id)
 			end
@@ -3956,7 +4066,7 @@ for index, passKey in ipairs(UpgradeConfig.GamePassOrder) do
 			if player:GetAttribute(attribute) == true then
 				button:SetAttribute("Owned", true)
 				button.BackgroundColor3 = OWNED_COLOR
-				setText("購入済み")
+				setText(L("owned"))
 			end
 		end
 		player:GetAttributeChangedSignal(attribute):Connect(updateOwned)
@@ -3967,7 +4077,7 @@ end
 for index, productKey in ipairs(UpgradeConfig.ProductOrder) do
 	local product = UpgradeConfig.Products[productKey]
 	if product.id ~= 0 then
-		makeRobuxButton(10 + index, product, Enum.InfoType.Product, function()
+		makeRobuxButton(10 + index, product, "product_" .. productKey, Enum.InfoType.Product, function()
 			MarketplaceService:PromptProductPurchase(player, product.id)
 		end)
 	end
@@ -3997,6 +4107,22 @@ screenGui.Parent = playerGui
 -- クリック演出: 玉がへこむ + 「+N」が浮かぶ
 ---------------------------------------------------------------------
 local coinButton = Workspace:WaitForChild("CoinButton")
+
+-- 玉の上の文字とランキング看板の見出しを自分の言語にする（自分の画面だけ変わる）
+task.spawn(function()
+	local ballLabel = coinButton:WaitForChild("BillboardGui", 10)
+	ballLabel = ballLabel and ballLabel:FindFirstChildOfClass("TextLabel")
+	if ballLabel then
+		ballLabel.Text = L("click_me")
+	end
+
+	local board = Workspace:WaitForChild("RankingBoard", 10)
+	local surface = board and board:FindFirstChildOfClass("SurfaceGui")
+	local rankingTitle = surface and surface:FindFirstChild("RankingTitle")
+	if rankingTitle then
+		rankingTitle.Text = L("ranking_title")
+	end
+end)
 local baseSize = coinButton.Size
 local pressTween
 
@@ -4023,7 +4149,7 @@ local function showPopup(amount, isCrit)
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.new(1, 0, 1, 0)
 	label.BackgroundTransparency = 1
-	label.Text = (isCrit and "大当たり! +" or "+") .. formatNumber(amount)
+	label.Text = isCrit and L("crit_popup", formatNumber(amount)) or ("+" .. formatNumber(amount))
 	label.TextColor3 = isCrit and Color3.fromRGB(255, 90, 60) or GOLD
 	label.TextStrokeTransparency = 0
 	label.TextScaled = true

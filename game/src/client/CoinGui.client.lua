@@ -7,6 +7,7 @@ local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local UpgradeConfig = require(ReplicatedStorage:WaitForChild("UpgradeConfig"))
+local Locale = require(ReplicatedStorage:WaitForChild("Locale"))
 
 local remotes = ReplicatedStorage:WaitForChild("CoinClickerRemotes")
 local buyUpgrade = remotes:WaitForChild("BuyUpgrade")
@@ -15,6 +16,11 @@ local rebirthRemote = remotes:WaitForChild("Rebirth")
 local announceRemote = remotes:WaitForChild("Announce")
 
 local player = Players.LocalPlayer
+local language = Locale.GetLanguage(player)
+
+local function L(key, ...)
+	return Locale.Get(language, key, ...)
+end
 local playerGui = player:WaitForChild("PlayerGui")
 local upgradesFolder = player:WaitForChild("Upgrades")
 local leaderstats = player:WaitForChild("leaderstats")
@@ -101,12 +107,12 @@ end
 
 local function updateTop()
 	local multiplier = getMultiplier()
-	coinLabel.Text = "コイン: " .. formatNumber(coins.Value)
-	rateLabel.Text = string.format(
-		"1クリック +%s ・ 毎秒 +%s ・ 大当たり %d%% ・ 倍率 x%.1f",
+	coinLabel.Text = L("coins_label", formatNumber(coins.Value))
+	rateLabel.Text = L(
+		"rate",
 		formatNumber(math.floor(UpgradeConfig.CoinsPerClick(clickLevel.Value) * multiplier)),
 		formatNumber(math.floor(UpgradeConfig.CoinsPerSecond(autoLevel.Value, factoryLevel.Value) * multiplier)),
-		math.floor(UpgradeConfig.CritChance(critLevel.Value) * 100 + 0.5),
+		formatNumber(math.floor(UpgradeConfig.CritChance(critLevel.Value) * 100 + 0.5)),
 		multiplier
 	)
 end
@@ -150,7 +156,7 @@ local title = Instance.new("TextLabel")
 title.LayoutOrder = 0
 title.Size = UDim2.new(1, 0, 0, 28)
 title.BackgroundTransparency = 1
-title.Text = "ショップ"
+title.Text = L("shop_title")
 title.TextColor3 = GOLD
 title.TextScaled = true
 title.Font = Enum.Font.GothamBold
@@ -176,17 +182,17 @@ for index, upgradeId in ipairs(UpgradeConfig.Order) do
 	local function update()
 		local level = levelValue.Value
 		if level >= UpgradeConfig.GetMaxLevel(upgradeId) then
-			button.Text = string.format("%s  Lv.%d\n最大レベル", upgrade.name, level)
+			button.Text = L("upgrade_max", L("upgrade_" .. upgradeId .. "_name"), formatNumber(level))
 			button.BackgroundColor3 = CANNOT_BUY
 			return
 		end
 
 		local cost = UpgradeConfig.GetCost(upgradeId, level)
-		button.Text = string.format(
-			"%s  Lv.%d\n%s\n費用: %s コイン",
-			upgrade.name,
-			level,
-			upgrade.description,
+		button.Text = L(
+			"upgrade_button",
+			L("upgrade_" .. upgradeId .. "_name"),
+			formatNumber(level),
+			L("upgrade_" .. upgradeId .. "_desc"),
 			formatNumber(cost)
 		)
 		button.BackgroundColor3 = coins.Value >= cost and CAN_BUY or CANNOT_BUY
@@ -225,12 +231,7 @@ local function updateRebirth()
 		return
 	end
 	local cost = UpgradeConfig.RebirthCost(rebirths.Value)
-	rebirthButton.Text = string.format(
-		"転生（%d回目）\n全部リセット → 倍率 +%.1f\n必要: %s コイン",
-		rebirths.Value + 1,
-		UpgradeConfig.REBIRTH_BONUS,
-		formatNumber(cost)
-	)
+	rebirthButton.Text = L("rebirth_button", formatNumber(rebirths.Value + 1), UpgradeConfig.REBIRTH_BONUS, formatNumber(cost))
 	rebirthButton.BackgroundColor3 = coins.Value >= cost and REBIRTH_COLOR or CANNOT_BUY
 end
 
@@ -246,7 +247,7 @@ rebirthButton.Activated:Connect(function()
 	end
 
 	confirming = true
-	rebirthButton.Text = "本当に転生する？\nもう一度押すと転生！"
+	rebirthButton.Text = L("rebirth_confirm")
 	task.delay(3, function()
 		confirming = false
 		updateRebirth()
@@ -268,7 +269,7 @@ inviteButton.BackgroundColor3 = Color3.fromRGB(230, 80, 150)
 inviteButton.TextColor3 = Color3.new(1, 1, 1)
 inviteButton.TextScaled = true
 inviteButton.Font = Enum.Font.GothamBold
-inviteButton.Text = string.format("友だちを招待！ 1人ごとにコイン +%d%%", math.floor(UpgradeConfig.FRIEND_BONUS * 100 + 0.5))
+inviteButton.Text = L("invite", formatNumber(math.floor(UpgradeConfig.FRIEND_BONUS * 100 + 0.5)))
 inviteButton.Visible = false
 inviteButton.Parent = screenGui
 addCorner(inviteButton, 12)
@@ -313,7 +314,22 @@ toastLayout.Parent = toastArea
 
 local toastCount = 0
 
-announceRemote.OnClientEvent:Connect(function(text, color)
+-- サーバーからは「文字の種類(key)・色・数字や名前」が届くので、ここで自分の言語の文にする
+local function localizeArg(arg)
+	if type(arg) == "number" and arg == math.floor(arg) then
+		return formatNumber(arg)
+	elseif type(arg) == "string" and string.sub(arg, 1, 1) == "@" then
+		return L(string.sub(arg, 2))
+	end
+	return arg
+end
+
+announceRemote.OnClientEvent:Connect(function(key, color, ...)
+	local args = { ... }
+	for i = 1, select("#", ...) do
+		args[i] = localizeArg(args[i])
+	end
+	local text = L(key, table.unpack(args, 1, select("#", ...)))
 	toastCount = toastCount + 1
 
 	local toast = Instance.new("TextLabel")
@@ -390,13 +406,13 @@ local robuxTitle = Instance.new("TextLabel")
 robuxTitle.LayoutOrder = 0
 robuxTitle.Size = UDim2.new(1, 0, 0, 28)
 robuxTitle.BackgroundTransparency = 1
-robuxTitle.Text = "スペシャルショップ"
+robuxTitle.Text = L("special_shop")
 robuxTitle.TextColor3 = GOLD
 robuxTitle.TextScaled = true
 robuxTitle.Font = Enum.Font.GothamBold
 robuxTitle.Parent = robuxShop
 
-local function makeRobuxButton(order, item, infoType, onClick)
+local function makeRobuxButton(order, item, textKey, infoType, onClick)
 	local button = Instance.new("TextButton")
 	button.LayoutOrder = order
 	button.Size = UDim2.new(1, 0, 0, 64)
@@ -412,7 +428,7 @@ local function makeRobuxButton(order, item, infoType, onClick)
 
 	local price = item.price
 	local function setText(suffix)
-		button.Text = string.format("%s\n%s\n%s", item.name, item.description, suffix)
+		button.Text = string.format("%s\n%s\n%s", L(textKey .. "_name"), L(textKey .. "_desc"), suffix)
 	end
 	setText("R$ " .. price)
 
@@ -439,7 +455,7 @@ for index, passKey in ipairs(UpgradeConfig.GamePassOrder) do
 	if pass.id ~= 0 then
 		local attribute = "Pass_" .. passKey
 		local button, setText
-		button, setText = makeRobuxButton(index, pass, Enum.InfoType.GamePass, function()
+		button, setText = makeRobuxButton(index, pass, "pass_" .. passKey, Enum.InfoType.GamePass, function()
 			if player:GetAttribute(attribute) ~= true then
 				MarketplaceService:PromptGamePassPurchase(player, pass.id)
 			end
@@ -449,7 +465,7 @@ for index, passKey in ipairs(UpgradeConfig.GamePassOrder) do
 			if player:GetAttribute(attribute) == true then
 				button:SetAttribute("Owned", true)
 				button.BackgroundColor3 = OWNED_COLOR
-				setText("購入済み")
+				setText(L("owned"))
 			end
 		end
 		player:GetAttributeChangedSignal(attribute):Connect(updateOwned)
@@ -460,7 +476,7 @@ end
 for index, productKey in ipairs(UpgradeConfig.ProductOrder) do
 	local product = UpgradeConfig.Products[productKey]
 	if product.id ~= 0 then
-		makeRobuxButton(10 + index, product, Enum.InfoType.Product, function()
+		makeRobuxButton(10 + index, product, "product_" .. productKey, Enum.InfoType.Product, function()
 			MarketplaceService:PromptProductPurchase(player, product.id)
 		end)
 	end
@@ -490,6 +506,22 @@ screenGui.Parent = playerGui
 -- クリック演出: 玉がへこむ + 「+N」が浮かぶ
 ---------------------------------------------------------------------
 local coinButton = Workspace:WaitForChild("CoinButton")
+
+-- 玉の上の文字とランキング看板の見出しを自分の言語にする（自分の画面だけ変わる）
+task.spawn(function()
+	local ballLabel = coinButton:WaitForChild("BillboardGui", 10)
+	ballLabel = ballLabel and ballLabel:FindFirstChildOfClass("TextLabel")
+	if ballLabel then
+		ballLabel.Text = L("click_me")
+	end
+
+	local board = Workspace:WaitForChild("RankingBoard", 10)
+	local surface = board and board:FindFirstChildOfClass("SurfaceGui")
+	local rankingTitle = surface and surface:FindFirstChild("RankingTitle")
+	if rankingTitle then
+		rankingTitle.Text = L("ranking_title")
+	end
+end)
 local baseSize = coinButton.Size
 local pressTween
 
@@ -516,7 +548,7 @@ local function showPopup(amount, isCrit)
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.new(1, 0, 1, 0)
 	label.BackgroundTransparency = 1
-	label.Text = (isCrit and "大当たり! +" or "+") .. formatNumber(amount)
+	label.Text = isCrit and L("crit_popup", formatNumber(amount)) or ("+" .. formatNumber(amount))
 	label.TextColor3 = isCrit and Color3.fromRGB(255, 90, 60) or GOLD
 	label.TextStrokeTransparency = 0
 	label.TextScaled = true

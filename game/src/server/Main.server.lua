@@ -88,7 +88,7 @@ if RunService:IsStudio() then
 	end)
 
 	if not dataStoresAvailable then
-		warn("[CoinClicker] DataStore が使えないので、Studio 用の仮保存で動かします（停止するとデータは消えます）。")
+		warn("[CoinClicker] DataStore unavailable; using temporary in-memory saves for Studio (data resets when you stop).")
 		local offlineService = createOfflineDataStoreService()
 		require(ServerScriptService.DataStore2.DataStoreServiceRetriever).Get = function()
 			return offlineService
@@ -175,7 +175,7 @@ billboard.Parent = coinButton
 local billboardLabel = Instance.new("TextLabel")
 billboardLabel.Size = UDim2.new(1, 0, 1, 0)
 billboardLabel.BackgroundTransparency = 1
-billboardLabel.Text = "クリックでコイン！"
+billboardLabel.Text = "Click for coins!" -- クライアント側で言語に合わせて書き換える
 billboardLabel.TextColor3 = Color3.new(1, 1, 1)
 billboardLabel.TextStrokeTransparency = 0
 billboardLabel.TextScaled = true
@@ -275,8 +275,9 @@ local function updateFriendBonus()
 		if count > before and count <= UpgradeConfig.MAX_FRIENDS_COUNTED then
 			announce:FireClient(
 				player,
-				string.format("フレンドボーナス！ コイン +%d%%", math.floor(count * UpgradeConfig.FRIEND_BONUS * 100 + 0.5)),
-				ANNOUNCE_PINK
+				"announce_friend",
+				ANNOUNCE_PINK,
+				math.floor(count * UpgradeConfig.FRIEND_BONUS * 100 + 0.5)
 			)
 		end
 	end
@@ -304,11 +305,7 @@ local function giveDailyReward(player)
 	streakStore:Set(streak)
 	DataStore2("coins", player):Increment(reward, STARTING_COINS)
 
-	announce:FireClient(
-		player,
-		string.format("ログインボーナス %d日目！ +%d コイン（毎日来ると増えるよ）", streak, reward),
-		ANNOUNCE_GREEN
-	)
+	announce:FireClient(player, "announce_daily", ANNOUNCE_GREEN, streak, reward)
 end
 
 -- 持っているゲームパスを属性に書く（Pass_doubleCoins など）
@@ -462,10 +459,7 @@ rebirthRemote.OnServerEvent:Connect(function(player)
 	rebirthStore:Set(rebirths + 1)
 	refreshMultiplier(player)
 
-	announce:FireAllClients(
-		string.format("%s が %d回目の転生！ 倍率 x%.1f", player.DisplayName, rebirths + 1, getMultiplier(player)),
-		ANNOUNCE_PINK
-	)
+	announce:FireAllClients("announce_rebirth", ANNOUNCE_PINK, player.DisplayName, rebirths + 1, getMultiplier(player))
 end)
 
 ---------------------------------------------------------------------
@@ -509,7 +503,7 @@ local function spawnGoldenCoin()
 	local tagLabel = Instance.new("TextLabel")
 	tagLabel.Size = UDim2.new(1, 0, 1, 0)
 	tagLabel.BackgroundTransparency = 1
-	tagLabel.Text = "ゴールデンコイン！"
+	tagLabel.Text = "GOLDEN COIN!"
 	tagLabel.TextColor3 = golden.Color
 	tagLabel.TextStrokeTransparency = 0
 	tagLabel.TextScaled = true
@@ -535,10 +529,7 @@ local function spawnGoldenCoin()
 		local reward = math.floor(math.max(100, perClick * 50 + perSecond * 60) * getMultiplier(player))
 		DataStore2("coins", player):Increment(reward, STARTING_COINS)
 
-		announce:FireAllClients(
-			string.format("%s がゴールデンコインをゲット！ +%d", player.DisplayName, reward),
-			ANNOUNCE_GOLD
-		)
+		announce:FireAllClients("announce_golden_got", ANNOUNCE_GOLD, player.DisplayName, reward)
 		golden:Destroy()
 	end
 
@@ -550,7 +541,7 @@ local function spawnGoldenCoin()
 	end)
 
 	golden.Parent = Workspace
-	announce:FireAllClients("ゴールデンコインが出現！ 早い者勝ち！", ANNOUNCE_GOLD)
+	announce:FireAllClients("announce_golden_spawn", ANNOUNCE_GOLD)
 
 	task.delay(GOLDEN_LIFETIME, function()
 		if not claimed then
@@ -613,12 +604,14 @@ local RANK_COLORS = {
 	Color3.fromRGB(205, 127, 50), -- 3位 銅
 }
 
-makeBoardLabel(0, 0.12, Color3.fromRGB(255, 220, 80)).Text = "コインランキング"
+local boardTitle = makeBoardLabel(0, 0.12, Color3.fromRGB(255, 220, 80))
+boardTitle.Name = "RankingTitle"
+boardTitle.Text = "Top Coins" -- クライアント側で言語に合わせて書き換える
 local rankLabels = {}
 for rank = 1, RANKING_SIZE do
 	rankLabels[rank] = makeBoardLabel(rank, 0.08, RANK_COLORS[rank] or Color3.new(1, 1, 1))
 end
-rankLabels[1].Text = "読み込み中..."
+rankLabels[1].Text = "Loading..."
 
 local nameCache = {}
 local function getName(userId)
@@ -653,7 +646,7 @@ local function updateRanking()
 		return rankingStore:GetSortedAsync(false, RANKING_SIZE):GetCurrentPage()
 	end)
 	if not ok then
-		rankLabels[1].Text = "ランキングを読み込めません"
+		rankLabels[1].Text = "Ranking unavailable"
 		return
 	end
 
@@ -666,7 +659,7 @@ local function updateRanking()
 		end
 	end
 	if not entries[1] then
-		rankLabels[1].Text = "まだ記録がありません"
+		rankLabels[1].Text = "No records yet"
 	end
 end
 
@@ -679,7 +672,7 @@ if rankingOk then
 		end
 	end)
 else
-	rankLabels[1].Text = "ランキングは公開後に動きます"
+	rankLabels[1].Text = "Ranking works after publishing"
 end
 
 
@@ -694,7 +687,7 @@ MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, passI
 		if pass.id == passId then
 			player:SetAttribute("Pass_" .. passKey, true)
 			refreshMultiplier(player)
-			announce:FireAllClients(string.format("%s が「%s」をゲット！", player.DisplayName, pass.name), ANNOUNCE_PINK)
+			announce:FireAllClients("announce_pass", ANNOUNCE_PINK, player.DisplayName, "@pass_" .. passKey .. "_name")
 		end
 	end
 end)
@@ -704,12 +697,12 @@ end)
 -- 同じ購入を2回渡さないよう、購入 ID を記録してから保存する
 ---------------------------------------------------------------------
 local function findProduct(productId)
-	for _, product in pairs(UpgradeConfig.Products) do
+	for productKey, product in pairs(UpgradeConfig.Products) do
 		if product.id ~= 0 and product.id == productId then
-			return product
+			return product, productKey
 		end
 	end
-	return nil
+	return nil, nil
 end
 
 MarketplaceService.ProcessReceipt = function(receipt)
@@ -718,7 +711,7 @@ MarketplaceService.ProcessReceipt = function(receipt)
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 
-	local product = findProduct(receipt.ProductId)
+	local product, productKey = findProduct(receipt.ProductId)
 	if not product then
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
@@ -750,9 +743,6 @@ MarketplaceService.ProcessReceipt = function(receipt)
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 
-	announce:FireAllClients(
-		string.format("%s が%sで +%d コイン！", player.DisplayName, product.name, reward),
-		ANNOUNCE_GOLD
-	)
+	announce:FireAllClients("announce_pack", ANNOUNCE_GOLD, player.DisplayName, "@product_" .. productKey .. "_name", reward)
 	return Enum.ProductPurchaseDecision.PurchaseGranted
 end
