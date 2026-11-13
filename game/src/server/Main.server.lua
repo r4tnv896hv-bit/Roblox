@@ -99,7 +99,10 @@ local STARTING_COINS = 0
 local CLICK_COOLDOWN = 0.1 -- 連打ツール対策（秒）
 
 -- 使うキーは必ず Combine する
-DataStore2.Combine("DATA", "coins", "clickLevel", "autoLevel")
+DataStore2.Combine("DATA", "coins")
+for _, upgradeId in ipairs(UpgradeConfig.Order) do
+	DataStore2.Combine("DATA", UpgradeConfig.Upgrades[upgradeId].key)
+end
 
 ---------------------------------------------------------------------
 -- クライアントとの通信用 RemoteEvent
@@ -229,11 +232,18 @@ clickDetector.MouseClick:Connect(function(player)
 
 	local amount = UpgradeConfig.CoinsPerClick(DataStore2("clickLevel", player):Get(0))
 
+	-- 大当たり判定
+	local critChance = UpgradeConfig.CritChance(DataStore2("critLevel", player):Get(0))
+	local isCrit = math.random() < critChance
+	if isCrit then
+		amount = amount * UpgradeConfig.CRIT_MULTIPLIER
+	end
+
 	-- 値が変わったその場で更新する（保存は DataStore2 が退出時に自動で行う）
 	DataStore2("coins", player):Increment(amount, STARTING_COINS)
 
 	-- クリックしたプレイヤーの画面に「+N」を出す
-	coinPopup:FireClient(player, amount)
+	coinPopup:FireClient(player, amount, isCrit)
 end)
 
 ---------------------------------------------------------------------
@@ -255,7 +265,7 @@ buyUpgrade.OnServerEvent:Connect(function(player, upgradeId)
 
 	local levelStore = DataStore2(upgrade.key, player)
 	local level = levelStore:Get(0)
-	if level >= UpgradeConfig.MAX_LEVEL then
+	if level >= UpgradeConfig.GetMaxLevel(upgradeId) then
 		return
 	end
 
@@ -276,9 +286,12 @@ task.spawn(function()
 	while true do
 		task.wait(1)
 		for player in pairs(loadedPlayers) do
-			local autoLevel = DataStore2("autoLevel", player):Get(0)
-			if autoLevel > 0 then
-				DataStore2("coins", player):Increment(UpgradeConfig.CoinsPerSecond(autoLevel), STARTING_COINS)
+			local perSecond = UpgradeConfig.CoinsPerSecond(
+				DataStore2("autoLevel", player):Get(0),
+				DataStore2("factoryLevel", player):Get(0)
+			)
+			if perSecond > 0 then
+				DataStore2("coins", player):Increment(perSecond, STARTING_COINS)
 			end
 		end
 	end
@@ -288,3 +301,116 @@ Players.PlayerRemoving:Connect(function(player)
 	loadedPlayers[player] = nil
 	lastClick[player] = nil
 end)
+
+---------------------------------------------------------------------
+-- ランキング看板（全サーバー共通、コイン所持数の上位10人）
+---------------------------------------------------------------------
+local RANKING_SIZE = 10
+local RANKING_INTERVAL = 60 -- 秒。DataStore の回数制限に引っかからないよう長めにする
+
+local board = Instance.new("Part")
+board.Name = "RankingBoard"
+board.Anchored = true
+board.Size = Vector3.new(14, 18, 1)
+board.Position = Vector3.new(18, 9, -20)
+board.Orientation = Vector3.new(0, -30, 0)
+board.Color = Color3.fromRGB(40, 40, 50)
+board.Parent = Workspace
+
+local surfaceGui = Instance.new("SurfaceGui")
+surfaceGui.Face = Enum.NormalId.Back -- スポーン地点のほうを向く面
+surfaceGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+surfaceGui.PixelsPerStud = 40
+surfaceGui.Parent = board
+
+local boardLayout = Instance.new("UIListLayout")
+boardLayout.SortOrder = Enum.SortOrder.LayoutOrder
+boardLayout.Parent = surfaceGui
+
+local function makeBoardLabel(order, height, color)
+	local label = Instance.new("TextLabel")
+	label.LayoutOrder = order
+	label.Size = UDim2.new(1, 0, height, 0)
+	label.BackgroundTransparency = 1
+	label.TextColor3 = color
+	label.TextScaled = true
+	label.Font = Enum.Font.GothamBold
+	label.Text = ""
+	label.Parent = surfaceGui
+	return label
+end
+
+local RANK_COLORS = {
+	Color3.fromRGB(255, 215, 0), -- 1位 金
+	Color3.fromRGB(200, 200, 210), -- 2位 銀
+	Color3.fromRGB(205, 127, 50), -- 3位 銅
+}
+
+makeBoardLabel(0, 0.12, Color3.fromRGB(255, 220, 80)).Text = "コインランキング"
+local rankLabels = {}
+for rank = 1, RANKING_SIZE do
+	rankLabels[rank] = makeBoardLabel(rank, 0.08, RANK_COLORS[rank] or Color3.new(1, 1, 1))
+end
+rankLabels[1].Text = "読み込み中..."
+
+local nameCache = {}
+local function getName(userId)
+	if nameCache[userId] then
+		return nameCache[userId]
+	end
+	local ok, name = pcall(function()
+		return Players:GetNameFromUserIdAsync(userId)
+	end)
+	if ok then
+		nameCache[userId] = name
+		return name
+	end
+	return "???"
+end
+
+local rankingOk, rankingStore = pcall(function()
+	return DataStoreService:GetOrderedDataStore("CoinRanking")
+end)
+
+local function updateRanking()
+	-- いまいるプレイヤーのコインを書き込む
+	for player in pairs(loadedPlayers) do
+		local coins = DataStore2("coins", player):Get(STARTING_COINS)
+		pcall(function()
+			rankingStore:SetAsync(tostring(player.UserId), math.floor(coins))
+		end)
+	end
+
+	-- 上位を読み出して看板に出す
+	local ok, entries = pcall(function()
+		return rankingStore:GetSortedAsync(false, RANKING_SIZE):GetCurrentPage()
+	end)
+	if not ok then
+		rankLabels[1].Text = "ランキングを読み込めません"
+		return
+	end
+
+	for rank = 1, RANKING_SIZE do
+		local entry = entries[rank]
+		if entry then
+			rankLabels[rank].Text = string.format("%d. %s  %d", rank, getName(tonumber(entry.key)), entry.value)
+		else
+			rankLabels[rank].Text = ""
+		end
+	end
+	if not entries[1] then
+		rankLabels[1].Text = "まだ記録がありません"
+	end
+end
+
+if rankingOk then
+	task.spawn(function()
+		task.wait(5) -- プレイヤーのデータ読み込みを待つ
+		while true do
+			updateRanking()
+			task.wait(RANKING_INTERVAL)
+		end
+	end)
+else
+	rankLabels[1].Text = "ランキングは公開後に動きます"
+end

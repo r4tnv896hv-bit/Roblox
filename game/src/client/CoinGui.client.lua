@@ -58,7 +58,7 @@ addCorner(coinLabel, 12)
 local rateLabel = Instance.new("TextLabel")
 rateLabel.AnchorPoint = Vector2.new(0.5, 0)
 rateLabel.Position = UDim2.new(0.5, 0, 0, 64)
-rateLabel.Size = UDim2.new(0, 260, 0, 24)
+rateLabel.Size = UDim2.new(0, 360, 0, 24)
 rateLabel.BackgroundTransparency = 1
 rateLabel.TextColor3 = Color3.new(1, 1, 1)
 rateLabel.TextStrokeTransparency = 0.5
@@ -68,19 +68,24 @@ rateLabel.Parent = screenGui
 
 local clickLevel = upgradesFolder:WaitForChild(UpgradeConfig.Upgrades.click.key)
 local autoLevel = upgradesFolder:WaitForChild(UpgradeConfig.Upgrades.auto.key)
+local critLevel = upgradesFolder:WaitForChild(UpgradeConfig.Upgrades.crit.key)
+local factoryLevel = upgradesFolder:WaitForChild(UpgradeConfig.Upgrades.factory.key)
 
 local function updateTop()
 	coinLabel.Text = "コイン: " .. formatNumber(coins.Value)
 	rateLabel.Text = string.format(
-		"1クリック +%s ・ 毎秒 +%s",
+		"1クリック +%s ・ 毎秒 +%s ・ 大当たり %d%%",
 		formatNumber(UpgradeConfig.CoinsPerClick(clickLevel.Value)),
-		formatNumber(UpgradeConfig.CoinsPerSecond(autoLevel.Value))
+		formatNumber(UpgradeConfig.CoinsPerSecond(autoLevel.Value, factoryLevel.Value)),
+		math.floor(UpgradeConfig.CritChance(critLevel.Value) * 100 + 0.5)
 	)
 end
 
 coins.Changed:Connect(updateTop)
 clickLevel.Changed:Connect(updateTop)
 autoLevel.Changed:Connect(updateTop)
+critLevel.Changed:Connect(updateTop)
+factoryLevel.Changed:Connect(updateTop)
 updateTop()
 
 ---------------------------------------------------------------------
@@ -135,7 +140,7 @@ for index, upgradeId in ipairs(UpgradeConfig.Order) do
 
 	local function update()
 		local level = levelValue.Value
-		if level >= UpgradeConfig.MAX_LEVEL then
+		if level >= UpgradeConfig.GetMaxLevel(upgradeId) then
 			button.Text = string.format("%s  Lv.%d\n最大レベル", upgrade.name, level)
 			button.BackgroundColor3 = CANNOT_BUY
 			return
@@ -183,18 +188,18 @@ local function playPress()
 	pressTween:Play()
 end
 
-local function showPopup(amount)
+local function showPopup(amount, isCrit)
 	local popup = Instance.new("BillboardGui")
 	popup.Adornee = coinButton
-	popup.Size = UDim2.new(0, 120, 0, 40)
+	popup.Size = isCrit and UDim2.new(0, 260, 0, 70) or UDim2.new(0, 120, 0, 40)
 	popup.StudsOffset = Vector3.new(math.random(-20, 20) / 10, 3, 0)
 	popup.AlwaysOnTop = true
 
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.new(1, 0, 1, 0)
 	label.BackgroundTransparency = 1
-	label.Text = "+" .. formatNumber(amount)
-	label.TextColor3 = GOLD
+	label.Text = (isCrit and "大当たり! +" or "+") .. formatNumber(amount)
+	label.TextColor3 = isCrit and Color3.fromRGB(255, 90, 60) or GOLD
 	label.TextStrokeTransparency = 0
 	label.TextScaled = true
 	label.Font = Enum.Font.GothamBold
@@ -212,7 +217,7 @@ local function showPopup(amount)
 	fade:Play()
 end
 
-coinPopup.OnClientEvent:Connect(function(amount)
+coinPopup.OnClientEvent:Connect(function(amount, isCrit)
 	playPress()
-	showPopup(amount)
+	showPopup(amount, isCrit)
 end)
