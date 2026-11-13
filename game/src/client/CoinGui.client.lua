@@ -514,6 +514,27 @@ screenGui.Parent = playerGui
 ---------------------------------------------------------------------
 local coinButton = Workspace:WaitForChild("CoinButton")
 
+-- LocaleKey 属性が付いた文字（ポータルの看板など）を自分の言語にする
+local function relabel(object)
+	if object:IsA("TextLabel") then
+		local key = object:GetAttribute("LocaleKey")
+		if key then
+			local arg = object:GetAttribute("LocaleArg")
+			if arg ~= nil then
+				object.Text = L(key, type(arg) == "number" and formatNumber(arg) or arg)
+			else
+				object.Text = L(key)
+			end
+		end
+	end
+end
+for _, object in ipairs(Workspace:GetDescendants()) do
+	relabel(object)
+end
+Workspace.DescendantAdded:Connect(function(object)
+	task.defer(relabel, object)
+end)
+
 -- 玉の上の文字とランキング看板の見出しを自分の言語にする（自分の画面だけ変わる）
 task.spawn(function()
 	local ballLabel = coinButton:WaitForChild("BillboardGui", 10)
@@ -545,9 +566,9 @@ local function playPress()
 	pressTween:Play()
 end
 
-local function showPopup(amount, isCrit)
+local function showPopup(amount, isCrit, sourcePart)
 	local popup = Instance.new("BillboardGui")
-	popup.Adornee = coinButton
+	popup.Adornee = sourcePart or coinButton
 	popup.Size = isCrit and UDim2.new(0, 260, 0, 70) or UDim2.new(0, 120, 0, 40)
 	popup.StudsOffset = Vector3.new(math.random(-20, 20) / 10, 3, 0)
 	popup.AlwaysOnTop = true
@@ -622,12 +643,14 @@ task.delay(8 * 60, function()
 	showToast(L("tutorial_like"), Color3.fromRGB(255, 130, 200))
 end)
 
-coinPopup.OnClientEvent:Connect(function(amount, isCrit)
+coinPopup.OnClientEvent:Connect(function(amount, isCrit, sourcePart)
 	clicksSeen = clicksSeen + 1
 	if tutorialArrow and clicksSeen >= 5 then
 		tutorialArrow:Destroy()
 		tutorialArrow = nil
 	end
-	playPress()
-	showPopup(amount, isCrit)
+	if sourcePart == nil or sourcePart == coinButton then
+		playPress()
+	end
+	showPopup(amount, isCrit, sourcePart)
 end)

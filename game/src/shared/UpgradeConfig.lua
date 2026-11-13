@@ -127,7 +127,16 @@ UpgradeConfig.Pets = {
 	dragon = { rarity = "rare", bonus = 0.5, color = Color3.fromRGB(230, 60, 60), size = 2.1 },
 	unicorn = { rarity = "epic", bonus = 1.0, color = Color3.fromRGB(255, 140, 220), size = 2.2, neon = true },
 	phoenix = { rarity = "legendary", bonus = 2.5, color = Color3.fromRGB(255, 190, 40), size = 2.4, neon = true },
+	-- ワールド2（クリスタルの島）のペット
+	penguin = { rarity = "rare", bonus = 0.8, color = Color3.fromRGB(45, 50, 75), size = 1.9 },
+	yeti = { rarity = "epic", bonus = 1.6, color = Color3.fromRGB(235, 245, 255), size = 2.4 },
+	iceDragon = { rarity = "legendary", bonus = 4.0, color = Color3.fromRGB(90, 220, 255), size = 2.6, neon = true },
 }
+
+-- ワールド2: 空に浮かぶクリスタルの島（転生すると行ける）
+UpgradeConfig.WORLD2_HEIGHT = 300
+UpgradeConfig.WORLD2_REBIRTHS = 1
+UpgradeConfig.WORLD2_CLICK_MULTIPLIER = 5
 
 -- 金色のペット: 同じペットを FUSE_COUNT 匹で合体すると、ボーナス GOLDEN_MULTIPLIER 倍の金色版になる
 UpgradeConfig.FUSE_COUNT = 5
@@ -165,8 +174,14 @@ UpgradeConfig.Eggs = {
 		position = Vector3.new(-26, 0, -12),
 		weights = { cat = 40, dragon = 35, unicorn = 20, phoenix = 5 },
 	},
+	crystal = {
+		cost = 250000,
+		color = Color3.fromRGB(120, 230, 255),
+		position = Vector3.new(-16, 302, -12),
+		weights = { penguin = 60, yeti = 32, iceDragon = 8 },
+	},
 }
-UpgradeConfig.EggOrder = { "basic", "golden" }
+UpgradeConfig.EggOrder = { "basic", "golden", "crystal" }
 
 -- 持っているペット（{ cat = 2, ... }）から、ついてくるペットと合計ボーナスを決める
 function UpgradeConfig.EquippedPets(ownedPets)

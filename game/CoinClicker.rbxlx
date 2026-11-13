@@ -58,6 +58,14 @@ local STRINGS = {
 		pet_dragon = "Dragon",
 		pet_unicorn = "Unicorn",
 		pet_phoenix = "Phoenix",
+		pet_penguin = "Penguin",
+		pet_yeti = "Yeti",
+		pet_iceDragon = "Ice Dragon",
+		egg_crystal = "Crystal Egg\n%s coins",
+		crystal_click = "x5 COINS!",
+		portal_world2 = "WORLD 2\nCrystal Island\n(%s rebirth)",
+		portal_world1 = "Back to\nWorld 1",
+		announce_need_rebirth = "You need %s rebirth to enter World 2!",
 		golden_pet = "Golden %s",
 		pets_title = "Your Pets",
 		pets_hint = "Tap to see your pets",
@@ -138,6 +146,14 @@ local STRINGS = {
 		pet_dragon = "ドラゴン",
 		pet_unicorn = "ユニコーン",
 		pet_phoenix = "フェニックス",
+		pet_penguin = "ペンギン",
+		pet_yeti = "イエティ",
+		pet_iceDragon = "アイスドラゴン",
+		egg_crystal = "クリスタルの卵\n%s コイン",
+		crystal_click = "コイン5倍！",
+		portal_world2 = "ワールド2\nクリスタルの島\n（転生%s回で入れる）",
+		portal_world1 = "ワールド1に\nもどる",
+		announce_need_rebirth = "ワールド2に入るには転生が %s 回必要です！",
 		golden_pet = "金色の%s",
 		pets_title = "持っているペット",
 		pets_hint = "タップでペット一覧",
@@ -338,7 +354,16 @@ UpgradeConfig.Pets = {
 	dragon = { rarity = "rare", bonus = 0.5, color = Color3.fromRGB(230, 60, 60), size = 2.1 },
 	unicorn = { rarity = "epic", bonus = 1.0, color = Color3.fromRGB(255, 140, 220), size = 2.2, neon = true },
 	phoenix = { rarity = "legendary", bonus = 2.5, color = Color3.fromRGB(255, 190, 40), size = 2.4, neon = true },
+	-- ワールド2（クリスタルの島）のペット
+	penguin = { rarity = "rare", bonus = 0.8, color = Color3.fromRGB(45, 50, 75), size = 1.9 },
+	yeti = { rarity = "epic", bonus = 1.6, color = Color3.fromRGB(235, 245, 255), size = 2.4 },
+	iceDragon = { rarity = "legendary", bonus = 4.0, color = Color3.fromRGB(90, 220, 255), size = 2.6, neon = true },
 }
+
+-- ワールド2: 空に浮かぶクリスタルの島（転生すると行ける）
+UpgradeConfig.WORLD2_HEIGHT = 300
+UpgradeConfig.WORLD2_REBIRTHS = 1
+UpgradeConfig.WORLD2_CLICK_MULTIPLIER = 5
 
 -- 金色のペット: 同じペットを FUSE_COUNT 匹で合体すると、ボーナス GOLDEN_MULTIPLIER 倍の金色版になる
 UpgradeConfig.FUSE_COUNT = 5
@@ -376,8 +401,14 @@ UpgradeConfig.Eggs = {
 		position = Vector3.new(-26, 0, -12),
 		weights = { cat = 40, dragon = 35, unicorn = 20, phoenix = 5 },
 	},
+	crystal = {
+		cost = 250000,
+		color = Color3.fromRGB(120, 230, 255),
+		position = Vector3.new(-16, 302, -12),
+		weights = { penguin = 60, yeti = 32, iceDragon = 8 },
+	},
 }
-UpgradeConfig.EggOrder = { "basic", "golden" }
+UpgradeConfig.EggOrder = { "basic", "golden", "crystal" }
 
 -- 持っているペット（{ cat = 2, ... }）から、ついてくるペットと合計ボーナスを決める
 function UpgradeConfig.EquippedPets(ownedPets)
@@ -3456,7 +3487,8 @@ Players.PlayerAdded:Connect(onPlayerAdded)
 ---------------------------------------------------------------------
 local lastClick = {}
 
-clickDetector.MouseClick:Connect(function(player)
+-- 玉をクリックしたとき（areaMultiplier はワールドごとの倍率、sourcePart はクリックした玉）
+local function handleClick(player, areaMultiplier, sourcePart)
 	if not loadedPlayers[player] then
 		return
 	end
@@ -3467,7 +3499,9 @@ clickDetector.MouseClick:Connect(function(player)
 	end
 	lastClick[player] = now
 
-	local amount = UpgradeConfig.CoinsPerClick(DataStore2("clickLevel", player):Get(0)) * getMultiplier(player)
+	local amount = UpgradeConfig.CoinsPerClick(DataStore2("clickLevel", player):Get(0))
+		* getMultiplier(player)
+		* areaMultiplier
 
 	-- 大当たり判定
 	local critChance = UpgradeConfig.CritChance(DataStore2("critLevel", player):Get(0))
@@ -3481,7 +3515,11 @@ clickDetector.MouseClick:Connect(function(player)
 	DataStore2("coins", player):Increment(amount, STARTING_COINS)
 
 	-- クリックしたプレイヤーの画面に「+N」を出す
-	coinPopup:FireClient(player, amount, isCrit)
+	coinPopup:FireClient(player, amount, isCrit, sourcePart)
+end
+
+clickDetector.MouseClick:Connect(function(player)
+	handleClick(player, 1, coinButton)
 end)
 
 ---------------------------------------------------------------------
@@ -3963,7 +4001,7 @@ for _, eggId in ipairs(UpgradeConfig.EggOrder) do
 	eggPart.Size = Vector3.new(4, 5, 4)
 	eggPart.Position = egg.position + Vector3.new(0, 4, 0)
 	eggPart.Color = egg.color
-	eggPart.Material = eggId == "golden" and Enum.Material.Neon or Enum.Material.SmoothPlastic
+	eggPart.Material = eggId == "basic" and Enum.Material.SmoothPlastic or Enum.Material.Neon
 	eggPart.Parent = Workspace
 
 	local mesh = Instance.new("SpecialMesh")
@@ -3980,7 +4018,7 @@ for _, eggId in ipairs(UpgradeConfig.EggOrder) do
 	local labelText = Instance.new("TextLabel")
 	labelText.Size = UDim2.new(1, 0, 1, 0)
 	labelText.BackgroundTransparency = 1
-	labelText.Text = string.format("%s Egg\n%d coins", eggId == "golden" and "Golden" or "Basic", egg.cost)
+	labelText.Text = string.format("%s Egg\n%d coins", eggId, egg.cost)
 	labelText.TextColor3 = egg.color
 	labelText.TextStrokeTransparency = 0
 	labelText.TextScaled = true
@@ -3989,7 +4027,7 @@ for _, eggId in ipairs(UpgradeConfig.EggOrder) do
 
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = "Hatch"
-	prompt.ObjectText = eggId == "golden" and "Golden Egg" or "Basic Egg"
+	prompt.ObjectText = eggId .. " egg"
 	prompt.HoldDuration = 0
 	prompt.MaxActivationDistance = 12
 	prompt.RequiresLineOfSight = false
@@ -4033,6 +4071,137 @@ fuseRemote.OnServerEvent:Connect(function(player, petId)
 	refreshPets(player)
 	refreshMultiplier(player)
 	announce:FireAllClients("announce_fuse", Color3.fromRGB(255, 210, 50), player.DisplayName, "@pet:" .. goldenId)
+end)
+
+---------------------------------------------------------------------
+-- ワールド2: 空に浮かぶクリスタルの島（転生すると入れる）
+-- 文字は英語で入れておき、LocaleKey 属性を見てクライアントが各言語に書き換える
+---------------------------------------------------------------------
+local SKY_Y = UpgradeConfig.WORLD2_HEIGHT
+
+local function makeLabel(parent, offsetY, localeKey, localeArg, color, size)
+	local gui = Instance.new("BillboardGui")
+	gui.Size = size or UDim2.new(0, 260, 0, 60)
+	gui.StudsOffset = Vector3.new(0, offsetY, 0)
+	gui.AlwaysOnTop = true
+	gui.Parent = parent
+
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1, 0, 1, 0)
+	label.BackgroundTransparency = 1
+	label.Text = localeKey
+	label.TextColor3 = color
+	label.TextStrokeTransparency = 0
+	label.TextScaled = true
+	label.Font = Enum.Font.GothamBlack
+	label:SetAttribute("LocaleKey", localeKey)
+	if localeArg then
+		label:SetAttribute("LocaleArg", localeArg)
+	end
+	label.Parent = gui
+	return label
+end
+
+local island = Instance.new("Part")
+island.Name = "CrystalIsland"
+island.Anchored = true
+island.Size = Vector3.new(140, 4, 140)
+island.Position = Vector3.new(0, SKY_Y, 0)
+island.Color = Color3.fromRGB(185, 225, 255)
+island.Material = Enum.Material.Ice
+island.Parent = Workspace
+
+local crystalRng = Random.new(77)
+for _ = 1, 24 do
+	local angle = crystalRng:NextNumber(0, math.pi * 2)
+	local radius = crystalRng:NextNumber(38, 64)
+	local height = crystalRng:NextNumber(5, 14)
+	local crystal = Instance.new("Part")
+	crystal.Anchored = true
+	crystal.Size = Vector3.new(2.5, height, 2.5)
+	crystal.CFrame = CFrame.new(math.cos(angle) * radius, SKY_Y + 2 + height / 2, math.sin(angle) * radius)
+		* CFrame.Angles(crystalRng:NextNumber(-0.3, 0.3), crystalRng:NextNumber(0, math.pi), crystalRng:NextNumber(-0.3, 0.3))
+	crystal.Color = Color3.fromRGB(120, 220, 255)
+	crystal.Material = Enum.Material.Neon
+	crystal.Transparency = 0.2
+	crystal.Parent = Workspace
+end
+
+local crystalBall = Instance.new("Part")
+crystalBall.Name = "CrystalBall"
+crystalBall.Shape = Enum.PartType.Ball
+crystalBall.Anchored = true
+crystalBall.Size = Vector3.new(7, 7, 7)
+crystalBall.Position = Vector3.new(0, SKY_Y + 8, -20)
+crystalBall.Color = Color3.fromRGB(110, 230, 255)
+crystalBall.Material = Enum.Material.Neon
+crystalBall.Parent = Workspace
+
+local crystalLight = Instance.new("PointLight")
+crystalLight.Color = crystalBall.Color
+crystalLight.Range = 22
+crystalLight.Brightness = 3
+crystalLight.Parent = crystalBall
+
+local crystalDetector = Instance.new("ClickDetector")
+crystalDetector.MaxActivationDistance = 40
+crystalDetector.Parent = crystalBall
+crystalDetector.MouseClick:Connect(function(player)
+	handleClick(player, UpgradeConfig.WORLD2_CLICK_MULTIPLIER, crystalBall)
+end)
+makeLabel(crystalBall, 6, "crystal_click", nil, Color3.fromRGB(180, 245, 255))
+
+-- ポータル（触れると移動）
+local portalCooldown = {}
+
+local function makePortal(position, color, localeKey, localeArg, destination, requiredRebirths)
+	local portal = Instance.new("Part")
+	portal.Name = "Portal"
+	portal.Anchored = true
+	portal.CanCollide = false
+	portal.Size = Vector3.new(7, 10, 1)
+	portal.Position = position + Vector3.new(0, 5, 0)
+	portal.Color = color
+	portal.Material = Enum.Material.Neon
+	portal.Transparency = 0.25
+	portal.Parent = Workspace
+
+	local frame = Instance.new("Part")
+	frame.Anchored = true
+	frame.Size = Vector3.new(9, 12, 0.8)
+	frame.Position = portal.Position + Vector3.new(0, 0.5, 0.6)
+	frame.Color = Color3.fromRGB(60, 40, 90)
+	frame.Parent = Workspace
+
+	makeLabel(portal, 7.5, localeKey, localeArg, Color3.fromRGB(255, 255, 255))
+
+	portal.Touched:Connect(function(hit)
+		local character = hit.Parent
+		local player = character and Players:GetPlayerFromCharacter(character)
+		if not player or not loadedPlayers[player] then
+			return
+		end
+		local now = tick()
+		if portalCooldown[player] and now - portalCooldown[player] < 2 then
+			return
+		end
+		portalCooldown[player] = now
+
+		if DataStore2("rebirths", player):Get(0) < requiredRebirths then
+			announce:FireClient(player, "announce_need_rebirth", ANNOUNCE_PINK, requiredRebirths)
+			return
+		end
+		character:PivotTo(CFrame.new(destination))
+	end)
+end
+
+makePortal(Vector3.new(16, 0, 4), Color3.fromRGB(150, 90, 255), "portal_world2", UpgradeConfig.WORLD2_REBIRTHS,
+	Vector3.new(0, SKY_Y + 6, 12), UpgradeConfig.WORLD2_REBIRTHS)
+makePortal(Vector3.new(16, SKY_Y + 2, 4), Color3.fromRGB(255, 200, 60), "portal_world1", nil,
+	Vector3.new(0, 6, 10), 0)
+
+Players.PlayerRemoving:Connect(function(player)
+	portalCooldown[player] = nil
 end)
 ]]></string>
       </Properties>
@@ -4576,6 +4745,27 @@ screenGui.Parent = playerGui
 ---------------------------------------------------------------------
 local coinButton = Workspace:WaitForChild("CoinButton")
 
+-- LocaleKey 属性が付いた文字（ポータルの看板など）を自分の言語にする
+local function relabel(object)
+	if object:IsA("TextLabel") then
+		local key = object:GetAttribute("LocaleKey")
+		if key then
+			local arg = object:GetAttribute("LocaleArg")
+			if arg ~= nil then
+				object.Text = L(key, type(arg) == "number" and formatNumber(arg) or arg)
+			else
+				object.Text = L(key)
+			end
+		end
+	end
+end
+for _, object in ipairs(Workspace:GetDescendants()) do
+	relabel(object)
+end
+Workspace.DescendantAdded:Connect(function(object)
+	task.defer(relabel, object)
+end)
+
 -- 玉の上の文字とランキング看板の見出しを自分の言語にする（自分の画面だけ変わる）
 task.spawn(function()
 	local ballLabel = coinButton:WaitForChild("BillboardGui", 10)
@@ -4607,9 +4797,9 @@ local function playPress()
 	pressTween:Play()
 end
 
-local function showPopup(amount, isCrit)
+local function showPopup(amount, isCrit, sourcePart)
 	local popup = Instance.new("BillboardGui")
-	popup.Adornee = coinButton
+	popup.Adornee = sourcePart or coinButton
 	popup.Size = isCrit and UDim2.new(0, 260, 0, 70) or UDim2.new(0, 120, 0, 40)
 	popup.StudsOffset = Vector3.new(math.random(-20, 20) / 10, 3, 0)
 	popup.AlwaysOnTop = true
@@ -4684,14 +4874,16 @@ task.delay(8 * 60, function()
 	showToast(L("tutorial_like"), Color3.fromRGB(255, 130, 200))
 end)
 
-coinPopup.OnClientEvent:Connect(function(amount, isCrit)
+coinPopup.OnClientEvent:Connect(function(amount, isCrit, sourcePart)
 	clicksSeen = clicksSeen + 1
 	if tutorialArrow and clicksSeen >= 5 then
 		tutorialArrow:Destroy()
 		tutorialArrow = nil
 	end
-	playPress()
-	showPopup(amount, isCrit)
+	if sourcePart == nil or sourcePart == coinButton then
+		playPress()
+	end
+	showPopup(amount, isCrit, sourcePart)
 end)
 ]]></string>
         </Properties>
