@@ -247,13 +247,31 @@ end
 -- 倍率（転生 × フレンドボーナス）
 ---------------------------------------------------------------------
 local function getMultiplier(player)
-	return UpgradeConfig.Multiplier(
+	local multiplier = UpgradeConfig.Multiplier(
 		DataStore2("rebirths", player):Get(0),
 		player:GetAttribute("FriendCount") or 0,
 		player:GetAttribute("Pass_doubleCoins") == true,
 		player:GetAttribute("PetBonus") or 0
 	)
+	if Workspace:GetAttribute("Weekend") then
+		multiplier = multiplier * UpgradeConfig.WEEKEND_MULTIPLIER
+	end
+	return multiplier
 end
+
+-- 週末イベントの状態を毎分確認（画面に帯を出すために Workspace の属性にも書く）
+task.spawn(function()
+	while true do
+		local weekend = UpgradeConfig.IsWeekend(os.time())
+		if Workspace:GetAttribute("Weekend") ~= weekend then
+			Workspace:SetAttribute("Weekend", weekend)
+			for player in pairs(loadedPlayers) do
+				player:SetAttribute("Multiplier", getMultiplier(player))
+			end
+		end
+		task.wait(60)
+	end
+end)
 
 -- ついてくるペットを属性に書く（クライアントが見た目を作る）
 local function refreshPets(player)
@@ -1224,5 +1242,27 @@ task.spawn(function()
 		end
 		Workspace:SetAttribute("RainUntil", 0)
 		Workspace:SetAttribute("NextRainAt", os.time() + UpgradeConfig.RAIN_INTERVAL)
+	end
+end)
+
+---------------------------------------------------------------------
+-- サーバーで一番コインを持っている人に王冠（ServerTop 属性）
+---------------------------------------------------------------------
+task.spawn(function()
+	while true do
+		task.wait(3)
+		local top, topCoins = nil, -1
+		for player in pairs(loadedPlayers) do
+			local coins = DataStore2("coins", player):Get(STARTING_COINS)
+			if coins > topCoins then
+				top, topCoins = player, coins
+			end
+		end
+		for player in pairs(loadedPlayers) do
+			local isTop = player == top and topCoins > 0
+			if player:GetAttribute("ServerTop") ~= isTop then
+				player:SetAttribute("ServerTop", isTop)
+			end
+		end
 	end
 end)

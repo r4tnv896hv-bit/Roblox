@@ -337,6 +337,23 @@ task.spawn(function()
 	end
 end)
 
+-- 週末イベントの帯
+local weekendLabel = Instance.new("TextLabel")
+weekendLabel.AnchorPoint = Vector2.new(1, 0)
+weekendLabel.Position = UDim2.new(1, -16, 0, 60)
+weekendLabel.Size = UDim2.new(0, 230, 0, 34)
+weekendLabel.BackgroundColor3 = Color3.fromRGB(230, 60, 120)
+weekendLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+weekendLabel.TextScaled = true
+weekendLabel.Font = Enum.Font.GothamBlack
+weekendLabel.Text = L("weekend_banner")
+weekendLabel.Visible = Workspace:GetAttribute("Weekend") == true
+weekendLabel.Parent = screenGui
+addCorner(weekendLabel, 10)
+Workspace:GetAttributeChangedSignal("Weekend"):Connect(function()
+	weekendLabel.Visible = Workspace:GetAttribute("Weekend") == true
+end)
+
 ---------------------------------------------------------------------
 -- 効果音（Roblox に最初から入っている音）
 ---------------------------------------------------------------------

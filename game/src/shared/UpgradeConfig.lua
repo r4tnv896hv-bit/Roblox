@@ -81,6 +81,15 @@ function UpgradeConfig.PlaytimeGift(perClick, perSecond, multiplier)
 	return math.floor(math.max(200, perSecond * 120 + perClick * 60) * multiplier)
 end
 
+-- 週末イベント: 金・土・日（UTC）はコイン WEEKEND_MULTIPLIER 倍
+UpgradeConfig.WEEKEND_MULTIPLIER = 2
+
+function UpgradeConfig.IsWeekend(timestamp)
+	-- os.date("!*t").wday: 1=日曜 … 6=金曜, 7=土曜
+	local wday = os.date("!*t", timestamp).wday
+	return wday == 1 or wday == 6 or wday == 7
+end
+
 -- コインの雨: RAIN_INTERVAL 秒ごとに RAIN_DURATION 秒、空からコインが降る
 UpgradeConfig.RAIN_INTERVAL = 10 * 60
 UpgradeConfig.RAIN_DURATION = 40

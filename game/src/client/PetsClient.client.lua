@@ -555,7 +555,8 @@ local function applyTitle(owner)
 		label.Parent = gui
 	end
 	local stars = rebirths > 0 and ("  ★" .. rebirths) or ""
-	gui.Label.Text = L("title_" .. titleKey) .. stars
+	local crown = owner:GetAttribute("ServerTop") and "👑 " or ""
+	gui.Label.Text = crown .. L("title_" .. titleKey) .. stars
 	gui.Label.TextColor3 = TITLE_COLORS[titleKey] or Color3.fromRGB(255, 255, 255)
 
 	-- オーラ
@@ -588,6 +589,9 @@ end
 
 local function watchTitle(owner)
 	owner:GetAttributeChangedSignal("TitleKey"):Connect(function()
+		applyTitle(owner)
+	end)
+	owner:GetAttributeChangedSignal("ServerTop"):Connect(function()
 		applyTitle(owner)
 	end)
 	owner.CharacterAdded:Connect(function(character)

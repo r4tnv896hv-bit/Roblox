@@ -49,6 +49,7 @@ local STRINGS = {
 		announce_playtime = "Thanks for playing %s minutes! Gift: +%s coins",
 		tutorial_click = "CLICK THE COIN!",
 		rain_in = "Coin Rain in %s",
+		weekend_banner = "WEEKEND 2x COINS!",
 		rain_now = "COIN RAIN! %ss left - grab the coins!",
 		announce_rain_soon = "COIN RAIN in 1 minute! Stay near the coin!",
 		announce_rain = "COIN RAIN! Grab as many coins as you can!",
@@ -147,6 +148,7 @@ local STRINGS = {
 		announce_playtime = "%s分遊んでくれてありがとう！ プレゼント +%s コイン",
 		tutorial_click = "コインをクリック！",
 		rain_in = "コインの雨まで %s",
+		weekend_banner = "週末イベント コイン2倍！",
 		rain_now = "コインの雨！ あと%s秒 - 拾いまくれ！",
 		announce_rain_soon = "あと1分でコインの雨！ 玉の近くで待とう！",
 		announce_rain = "コインの雨だ！ たくさん拾おう！",
@@ -336,6 +338,15 @@ UpgradeConfig.PLAYTIME_GIFT_SECONDS = 10 * 60
 
 function UpgradeConfig.PlaytimeGift(perClick, perSecond, multiplier)
 	return math.floor(math.max(200, perSecond * 120 + perClick * 60) * multiplier)
+end
+
+-- 週末イベント: 金・土・日（UTC）はコイン WEEKEND_MULTIPLIER 倍
+UpgradeConfig.WEEKEND_MULTIPLIER = 2
+
+function UpgradeConfig.IsWeekend(timestamp)
+	-- os.date("!*t").wday: 1=日曜 … 6=金曜, 7=土曜
+	local wday = os.date("!*t", timestamp).wday
+	return wday == 1 or wday == 6 or wday == 7
 end
 
 -- コインの雨: RAIN_INTERVAL 秒ごとに RAIN_DURATION 秒、空からコインが降る
@@ -3353,13 +3364,31 @@ end
 -- 倍率（転生 × フレンドボーナス）
 ---------------------------------------------------------------------
 local function getMultiplier(player)
-	return UpgradeConfig.Multiplier(
+	local multiplier = UpgradeConfig.Multiplier(
 		DataStore2("rebirths", player):Get(0),
 		player:GetAttribute("FriendCount") or 0,
 		player:GetAttribute("Pass_doubleCoins") == true,
 		player:GetAttribute("PetBonus") or 0
 	)
+	if Workspace:GetAttribute("Weekend") then
+		multiplier = multiplier * UpgradeConfig.WEEKEND_MULTIPLIER
+	end
+	return multiplier
 end
+
+-- 週末イベントの状態を毎分確認（画面に帯を出すために Workspace の属性にも書く）
+task.spawn(function()
+	while true do
+		local weekend = UpgradeConfig.IsWeekend(os.time())
+		if Workspace:GetAttribute("Weekend") ~= weekend then
+			Workspace:SetAttribute("Weekend", weekend)
+			for player in pairs(loadedPlayers) do
+				player:SetAttribute("Multiplier", getMultiplier(player))
+			end
+		end
+		task.wait(60)
+	end
+end)
 
 -- ついてくるペットを属性に書く（クライアントが見た目を作る）
 local function refreshPets(player)
@@ -4332,6 +4361,28 @@ task.spawn(function()
 		Workspace:SetAttribute("NextRainAt", os.time() + UpgradeConfig.RAIN_INTERVAL)
 	end
 end)
+
+---------------------------------------------------------------------
+-- サーバーで一番コインを持っている人に王冠（ServerTop 属性）
+---------------------------------------------------------------------
+task.spawn(function()
+	while true do
+		task.wait(3)
+		local top, topCoins = nil, -1
+		for player in pairs(loadedPlayers) do
+			local coins = DataStore2("coins", player):Get(STARTING_COINS)
+			if coins > topCoins then
+				top, topCoins = player, coins
+			end
+		end
+		for player in pairs(loadedPlayers) do
+			local isTop = player == top and topCoins > 0
+			if player:GetAttribute("ServerTop") ~= isTop then
+				player:SetAttribute("ServerTop", isTop)
+			end
+		end
+	end
+end)
 ]]></string>
       </Properties>
     </Item>
@@ -4843,6 +4894,23 @@ task.spawn(function()
 		end
 		task.wait(0.5)
 	end
+end)
+
+-- 週末イベントの帯
+local weekendLabel = Instance.new("TextLabel")
+weekendLabel.AnchorPoint = Vector2.new(1, 0)
+weekendLabel.Position = UDim2.new(1, -16, 0, 60)
+weekendLabel.Size = UDim2.new(0, 230, 0, 34)
+weekendLabel.BackgroundColor3 = Color3.fromRGB(230, 60, 120)
+weekendLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+weekendLabel.TextScaled = true
+weekendLabel.Font = Enum.Font.GothamBlack
+weekendLabel.Text = L("weekend_banner")
+weekendLabel.Visible = Workspace:GetAttribute("Weekend") == true
+weekendLabel.Parent = screenGui
+addCorner(weekendLabel, 10)
+Workspace:GetAttributeChangedSignal("Weekend"):Connect(function()
+	weekendLabel.Visible = Workspace:GetAttribute("Weekend") == true
 end)
 
 ---------------------------------------------------------------------
@@ -5806,7 +5874,8 @@ local function applyTitle(owner)
 		label.Parent = gui
 	end
 	local stars = rebirths > 0 and ("  ★" .. rebirths) or ""
-	gui.Label.Text = L("title_" .. titleKey) .. stars
+	local crown = owner:GetAttribute("ServerTop") and "👑 " or ""
+	gui.Label.Text = crown .. L("title_" .. titleKey) .. stars
 	gui.Label.TextColor3 = TITLE_COLORS[titleKey] or Color3.fromRGB(255, 255, 255)
 
 	-- オーラ
@@ -5839,6 +5908,9 @@ end
 
 local function watchTitle(owner)
 	owner:GetAttributeChangedSignal("TitleKey"):Connect(function()
+		applyTitle(owner)
+	end)
+	owner:GetAttributeChangedSignal("ServerTop"):Connect(function()
 		applyTitle(owner)
 	end)
 	owner.CharacterAdded:Connect(function(character)
