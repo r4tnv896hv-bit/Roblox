@@ -81,6 +81,29 @@ function UpgradeConfig.PlaytimeGift(perClick, perSecond, multiplier)
 	return math.floor(math.max(200, perSecond * 120 + perClick * 60) * multiplier)
 end
 
+-- コインの雨: RAIN_INTERVAL 秒ごとに RAIN_DURATION 秒、空からコインが降る
+UpgradeConfig.RAIN_INTERVAL = 10 * 60
+UpgradeConfig.RAIN_DURATION = 40
+
+-- 頭の上の称号（持っているコインで決まる。上から順に判定）
+UpgradeConfig.Titles = {
+	{ key = "god", coins = 1e12, aura = Color3.fromRGB(255, 80, 220) },
+	{ key = "billionaire", coins = 1e9, aura = Color3.fromRGB(120, 220, 255) },
+	{ key = "millionaire", coins = 1e6, aura = Color3.fromRGB(255, 210, 60) },
+	{ key = "rich", coins = 1e5 },
+	{ key = "collector", coins = 1e3 },
+	{ key = "newbie", coins = 0 },
+}
+
+function UpgradeConfig.GetTitle(coins)
+	for _, title in ipairs(UpgradeConfig.Titles) do
+		if coins >= title.coins then
+			return title
+		end
+	end
+	return UpgradeConfig.Titles[#UpgradeConfig.Titles]
+end
+
 UpgradeConfig.DAILY_BASE_REWARD = 100
 UpgradeConfig.DAILY_MAX_STREAK = 7
 

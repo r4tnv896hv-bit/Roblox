@@ -14,6 +14,7 @@ local buyUpgrade = remotes:WaitForChild("BuyUpgrade")
 local coinPopup = remotes:WaitForChild("CoinPopup")
 local rebirthRemote = remotes:WaitForChild("Rebirth")
 local announceRemote = remotes:WaitForChild("Announce")
+local pickupRemote = remotes:WaitForChild("Pickup")
 
 local player = Players.LocalPlayer
 local language = Locale.GetLanguage(player)
@@ -299,9 +300,60 @@ end)
 ---------------------------------------------------------------------
 -- お知らせ（ログインボーナス・転生・ゴールデンコインなど）
 ---------------------------------------------------------------------
+---------------------------------------------------------------------
+-- コインの雨のカウントダウン
+---------------------------------------------------------------------
+local rainLabel = Instance.new("TextLabel")
+rainLabel.AnchorPoint = Vector2.new(0.5, 0)
+rainLabel.Position = UDim2.new(0.5, 0, 0, 92)
+rainLabel.Size = UDim2.new(0, 420, 0, 28)
+rainLabel.BackgroundColor3 = PANEL
+rainLabel.BackgroundTransparency = 0.35
+rainLabel.TextColor3 = GOLD
+rainLabel.TextScaled = true
+rainLabel.Font = Enum.Font.GothamBold
+rainLabel.Text = ""
+rainLabel.Parent = screenGui
+addCorner(rainLabel, 8)
+
+task.spawn(function()
+	while true do
+		local now = os.time()
+		local rainUntil = Workspace:GetAttribute("RainUntil") or 0
+		local nextRain = Workspace:GetAttribute("NextRainAt") or 0
+		if rainUntil > now then
+			rainLabel.Text = L("rain_now", formatNumber(rainUntil - now))
+			rainLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+			rainLabel.BackgroundColor3 = Color3.fromRGB(200, 140, 20)
+		elseif nextRain > now then
+			local left = nextRain - now
+			rainLabel.Text = L("rain_in", string.format("%d:%02d", math.floor(left / 60), left % 60))
+			rainLabel.TextColor3 = GOLD
+			rainLabel.BackgroundColor3 = PANEL
+		else
+			rainLabel.Text = ""
+		end
+		task.wait(0.5)
+	end
+end)
+
+---------------------------------------------------------------------
+-- 効果音（Roblox に最初から入っている音）
+---------------------------------------------------------------------
+local SoundService = game:GetService("SoundService")
+local clickSound = Instance.new("Sound")
+clickSound.SoundId = "rbxasset://sounds/electronicpingshort.wav"
+clickSound.Volume = 0.35
+clickSound.Parent = SoundService
+
+local function playClick(pitch)
+	clickSound.PlaybackSpeed = pitch or 1
+	SoundService:PlayLocalSound(clickSound)
+end
+
 local toastArea = Instance.new("Frame")
 toastArea.AnchorPoint = Vector2.new(0.5, 0)
-toastArea.Position = UDim2.new(0.5, 0, 0, 96)
+toastArea.Position = UDim2.new(0.5, 0, 0, 126)
 toastArea.Size = UDim2.new(0, 520, 0, 120)
 toastArea.BackgroundTransparency = 1
 toastArea.Parent = screenGui
@@ -652,5 +704,34 @@ coinPopup.OnClientEvent:Connect(function(amount, isCrit, sourcePart)
 	if sourcePart == nil or sourcePart == coinButton then
 		playPress()
 	end
+	playClick(isCrit and 1.6 or 1)
 	showPopup(amount, isCrit, sourcePart)
+end)
+
+---------------------------------------------------------------------
+-- コインの雨で拾ったとき: 画面に「+N」が飛び出して音が鳴る
+---------------------------------------------------------------------
+local pickupRng = Random.new()
+pickupRemote.OnClientEvent:Connect(function(amount)
+	playClick(1.3 + pickupRng:NextNumber(0, 0.4))
+	local popup = Instance.new("TextLabel")
+	popup.AnchorPoint = Vector2.new(0.5, 0.5)
+	popup.Position = UDim2.new(0.5 + pickupRng:NextNumber(-0.12, 0.12), 0, 0.55 + pickupRng:NextNumber(-0.08, 0.08), 0)
+	popup.Size = UDim2.new(0, 220, 0, 50)
+	popup.BackgroundTransparency = 1
+	popup.Text = "+" .. formatNumber(amount)
+	popup.TextColor3 = GOLD
+	popup.TextStrokeTransparency = 0
+	popup.TextScaled = true
+	popup.Font = Enum.Font.GothamBlack
+	popup.Parent = screenGui
+	local tween = TweenService:Create(popup, TweenInfo.new(0.9, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Position = popup.Position - UDim2.new(0, 0, 0.12, 0),
+		TextTransparency = 1,
+		TextStrokeTransparency = 1,
+	})
+	tween.Completed:Connect(function()
+		popup:Destroy()
+	end)
+	tween:Play()
 end)

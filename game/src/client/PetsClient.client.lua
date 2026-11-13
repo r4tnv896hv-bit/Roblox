@@ -500,3 +500,114 @@ RunService.RenderStepped:Connect(function(dt)
 		end
 	end
 end)
+
+---------------------------------------------------------------------
+-- 頭の上の称号と、お金持ちのオーラ（みんなの分を自分の言語で表示）
+---------------------------------------------------------------------
+local TITLE_COLORS = {
+	newbie = Color3.fromRGB(220, 220, 220),
+	collector = Color3.fromRGB(120, 230, 120),
+	rich = Color3.fromRGB(100, 180, 255),
+	millionaire = Color3.fromRGB(255, 210, 60),
+	billionaire = Color3.fromRGB(120, 230, 255),
+	god = Color3.fromRGB(255, 90, 220),
+}
+
+local function auraColor(titleKey)
+	for _, title in ipairs(UpgradeConfig.Titles) do
+		if title.key == titleKey then
+			return title.aura
+		end
+	end
+	return nil
+end
+
+local function applyTitle(owner)
+	local character = owner.Character
+	local head = character and character:FindFirstChild("Head")
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if not head then
+		return
+	end
+	local titleKey = owner:GetAttribute("TitleKey") or "newbie"
+	local stats = owner:FindFirstChild("leaderstats")
+	local rebirths = 0
+	local rebirthValue = stats and stats:FindFirstChild("Rebirths")
+	if rebirthValue then
+		rebirths = rebirthValue.Value
+	end
+
+	local gui = head:FindFirstChild("TitleGui")
+	if not gui then
+		gui = Instance.new("BillboardGui")
+		gui.Name = "TitleGui"
+		gui.Size = UDim2.new(0, 200, 0, 46)
+		gui.StudsOffset = Vector3.new(0, 2.6, 0)
+		gui.MaxDistance = 90
+		gui.Parent = head
+		local label = Instance.new("TextLabel")
+		label.Name = "Label"
+		label.Size = UDim2.new(1, 0, 1, 0)
+		label.BackgroundTransparency = 1
+		label.TextStrokeTransparency = 0
+		label.TextScaled = true
+		label.Font = Enum.Font.GothamBlack
+		label.Parent = gui
+	end
+	local stars = rebirths > 0 and ("  ★" .. rebirths) or ""
+	gui.Label.Text = L("title_" .. titleKey) .. stars
+	gui.Label.TextColor3 = TITLE_COLORS[titleKey] or Color3.fromRGB(255, 255, 255)
+
+	-- オーラ
+	local existing = root and root:FindFirstChild("RichAura")
+	local colorValue = auraColor(titleKey)
+	if root and colorValue then
+		if not existing then
+			existing = Instance.new("ParticleEmitter")
+			existing.Name = "RichAura"
+			existing.Rate = 14
+			existing.Lifetime = NumberRange.new(0.8, 1.4)
+			existing.Speed = NumberRange.new(1, 3)
+			existing.SpreadAngle = Vector2.new(180, 180)
+			existing.Size = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.5),
+				NumberSequenceKeypoint.new(1, 0),
+			})
+			existing.Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.2),
+				NumberSequenceKeypoint.new(1, 1),
+			})
+			existing.LightEmission = 1
+			existing.Parent = root
+		end
+		existing.Color = ColorSequence.new(colorValue)
+	elseif existing then
+		existing:Destroy()
+	end
+end
+
+local function watchTitle(owner)
+	owner:GetAttributeChangedSignal("TitleKey"):Connect(function()
+		applyTitle(owner)
+	end)
+	owner.CharacterAdded:Connect(function(character)
+		character:WaitForChild("Head", 10)
+		character:WaitForChild("HumanoidRootPart", 10)
+		applyTitle(owner)
+	end)
+	task.spawn(function()
+		local stats = owner:WaitForChild("leaderstats", 30)
+		local rebirthValue = stats and stats:WaitForChild("Rebirths", 10)
+		if rebirthValue then
+			rebirthValue.Changed:Connect(function()
+				applyTitle(owner)
+			end)
+		end
+		applyTitle(owner)
+	end)
+end
+
+for _, other in ipairs(Players:GetPlayers()) do
+	watchTitle(other)
+end
+Players.PlayerAdded:Connect(watchTitle)

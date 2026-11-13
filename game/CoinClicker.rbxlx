@@ -48,6 +48,16 @@ local STRINGS = {
 		announce_offline = "Welcome back! You earned +%s coins while away (%s min)",
 		announce_playtime = "Thanks for playing %s minutes! Gift: +%s coins",
 		tutorial_click = "CLICK THE COIN!",
+		rain_in = "Coin Rain in %s",
+		rain_now = "COIN RAIN! %ss left - grab the coins!",
+		announce_rain_soon = "COIN RAIN in 1 minute! Stay near the coin!",
+		announce_rain = "COIN RAIN! Grab as many coins as you can!",
+		title_newbie = "Newbie",
+		title_collector = "Collector",
+		title_rich = "Rich",
+		title_millionaire = "MILLIONAIRE",
+		title_billionaire = "BILLIONAIRE",
+		title_god = "COIN GOD",
 		announce_need_coins = "You need %s coins!",
 		announce_hatch = "%s hatched a %s %s!",
 		hatch_title = "You hatched...",
@@ -136,6 +146,16 @@ local STRINGS = {
 		announce_offline = "おかえり！ いない間に +%s コインたまったよ（%s分）",
 		announce_playtime = "%s分遊んでくれてありがとう！ プレゼント +%s コイン",
 		tutorial_click = "コインをクリック！",
+		rain_in = "コインの雨まで %s",
+		rain_now = "コインの雨！ あと%s秒 - 拾いまくれ！",
+		announce_rain_soon = "あと1分でコインの雨！ 玉の近くで待とう！",
+		announce_rain = "コインの雨だ！ たくさん拾おう！",
+		title_newbie = "ビギナー",
+		title_collector = "コレクター",
+		title_rich = "お金持ち",
+		title_millionaire = "ミリオネア",
+		title_billionaire = "ビリオネア",
+		title_god = "コインの神",
 		announce_need_coins = "コインが %s 必要です！",
 		announce_hatch = "%s が %s の %s をゲット！",
 		hatch_title = "卵から出てきたのは…",
@@ -316,6 +336,29 @@ UpgradeConfig.PLAYTIME_GIFT_SECONDS = 10 * 60
 
 function UpgradeConfig.PlaytimeGift(perClick, perSecond, multiplier)
 	return math.floor(math.max(200, perSecond * 120 + perClick * 60) * multiplier)
+end
+
+-- コインの雨: RAIN_INTERVAL 秒ごとに RAIN_DURATION 秒、空からコインが降る
+UpgradeConfig.RAIN_INTERVAL = 10 * 60
+UpgradeConfig.RAIN_DURATION = 40
+
+-- 頭の上の称号（持っているコインで決まる。上から順に判定）
+UpgradeConfig.Titles = {
+	{ key = "god", coins = 1e12, aura = Color3.fromRGB(255, 80, 220) },
+	{ key = "billionaire", coins = 1e9, aura = Color3.fromRGB(120, 220, 255) },
+	{ key = "millionaire", coins = 1e6, aura = Color3.fromRGB(255, 210, 60) },
+	{ key = "rich", coins = 1e5 },
+	{ key = "collector", coins = 1e3 },
+	{ key = "newbie", coins = 0 },
+}
+
+function UpgradeConfig.GetTitle(coins)
+	for _, title in ipairs(UpgradeConfig.Titles) do
+		if coins >= title.coins then
+			return title
+		end
+	end
+	return UpgradeConfig.Titles[#UpgradeConfig.Titles]
 end
 
 UpgradeConfig.DAILY_BASE_REWARD = 100
@@ -3196,6 +3239,11 @@ local rebirthRemote = Instance.new("RemoteEvent")
 rebirthRemote.Name = "Rebirth"
 rebirthRemote.Parent = remotes
 
+-- コインの雨で拾った量をその人に知らせる（amount）
+local pickupRemote = Instance.new("RemoteEvent")
+pickupRemote.Name = "Pickup"
+pickupRemote.Parent = remotes
+
 -- 画面上部にお知らせを出す（text, 色）
 local announce = Instance.new("RemoteEvent")
 announce.Name = "Announce"
@@ -3561,6 +3609,12 @@ task.spawn(function()
 
 			local played = (secondsPlayed[player] or 0) + 1
 			secondsPlayed[player] = played
+
+			-- 頭の上の称号（クライアントが見た目を作る）
+			local titleKey = UpgradeConfig.GetTitle(DataStore2("coins", player):Get(STARTING_COINS)).key
+			if player:GetAttribute("TitleKey") ~= titleKey then
+				player:SetAttribute("TitleKey", titleKey)
+			end
 
 			-- 最後にいた時刻（オフライン報酬用）を 30 秒ごとに記録
 			if played % 30 == 0 then
@@ -4194,6 +4248,90 @@ makePortal(Vector3.new(16, SKY_Y + 2, 4), Color3.fromRGB(255, 200, 60), "portal_
 Players.PlayerRemoving:Connect(function(player)
 	portalCooldown[player] = nil
 end)
+
+---------------------------------------------------------------------
+-- コインの雨: 10 分ごとに空からコインが降ってきて、みんなで拾い合う
+-- Workspace の属性 NextRainAt / RainUntil（os.time）で画面にカウントダウンを出す
+---------------------------------------------------------------------
+local RAIN_CENTER = Vector3.new(0, 0, -8)
+local RAIN_RADIUS = 45
+local rainRng = Random.new()
+
+local function rainReward(player)
+	local perClick = UpgradeConfig.CoinsPerClick(DataStore2("clickLevel", player):Get(0))
+	return math.floor(math.max(10, perClick * 8 + getPerSecond(player) * 3) * getMultiplier(player))
+end
+
+local function dropRainCoin()
+	local angle = rainRng:NextNumber(0, math.pi * 2)
+	local radius = math.sqrt(rainRng:NextNumber()) * RAIN_RADIUS
+	local coin = Instance.new("Part")
+	coin.Name = "RainCoin"
+	coin.Shape = Enum.PartType.Cylinder
+	coin.Size = Vector3.new(0.4, 2.4, 2.4)
+	coin.Color = Color3.fromRGB(255, 200, 50)
+	coin.Material = Enum.Material.Metal
+	coin.Reflectance = 0.2
+	coin.CFrame = CFrame.new(RAIN_CENTER + Vector3.new(math.cos(angle) * radius, 70 + rainRng:NextNumber(0, 20), math.sin(angle) * radius))
+		* CFrame.Angles(rainRng:NextNumber(0, 3), rainRng:NextNumber(0, 3), rainRng:NextNumber(0, 3))
+	coin.CustomPhysicalProperties = PhysicalProperties.new(1, 0.6, 0.3)
+
+	local shine = Instance.new("PointLight")
+	shine.Color = coin.Color
+	shine.Range = 6
+	shine.Brightness = 1
+	shine.Parent = coin
+
+	local taken = false
+	coin.Touched:Connect(function(hit)
+		if taken or not hit.Parent then
+			return
+		end
+		local player = Players:GetPlayerFromCharacter(hit.Parent)
+		if not player or not loadedPlayers[player] then
+			return
+		end
+		taken = true
+		local amount = rainReward(player)
+		DataStore2("coins", player):Increment(amount, STARTING_COINS)
+		pickupRemote:FireClient(player, amount)
+		coin:Destroy()
+	end)
+
+	coin.Parent = Workspace
+	task.delay(15, function()
+		if coin.Parent then
+			coin:Destroy()
+		end
+	end)
+end
+
+task.spawn(function()
+	Workspace:SetAttribute("NextRainAt", os.time() + UpgradeConfig.RAIN_INTERVAL)
+	while true do
+		local nextRain = Workspace:GetAttribute("NextRainAt")
+		local warned = false
+		while os.time() < nextRain do
+			if not warned and nextRain - os.time() <= 60 then
+				warned = true
+				announce:FireAllClients("announce_rain_soon", Color3.fromRGB(255, 215, 80))
+			end
+			task.wait(1)
+		end
+
+		Workspace:SetAttribute("RainUntil", os.time() + UpgradeConfig.RAIN_DURATION)
+		announce:FireAllClients("announce_rain", Color3.fromRGB(255, 215, 80))
+		local stopAt = os.clock() + UpgradeConfig.RAIN_DURATION
+		while os.clock() < stopAt do
+			if next(loadedPlayers) then
+				dropRainCoin()
+			end
+			task.wait(0.12)
+		end
+		Workspace:SetAttribute("RainUntil", 0)
+		Workspace:SetAttribute("NextRainAt", os.time() + UpgradeConfig.RAIN_INTERVAL)
+	end
+end)
 ]]></string>
       </Properties>
     </Item>
@@ -4384,6 +4522,7 @@ local buyUpgrade = remotes:WaitForChild("BuyUpgrade")
 local coinPopup = remotes:WaitForChild("CoinPopup")
 local rebirthRemote = remotes:WaitForChild("Rebirth")
 local announceRemote = remotes:WaitForChild("Announce")
+local pickupRemote = remotes:WaitForChild("Pickup")
 
 local player = Players.LocalPlayer
 local language = Locale.GetLanguage(player)
@@ -4669,9 +4808,60 @@ end)
 ---------------------------------------------------------------------
 -- お知らせ（ログインボーナス・転生・ゴールデンコインなど）
 ---------------------------------------------------------------------
+---------------------------------------------------------------------
+-- コインの雨のカウントダウン
+---------------------------------------------------------------------
+local rainLabel = Instance.new("TextLabel")
+rainLabel.AnchorPoint = Vector2.new(0.5, 0)
+rainLabel.Position = UDim2.new(0.5, 0, 0, 92)
+rainLabel.Size = UDim2.new(0, 420, 0, 28)
+rainLabel.BackgroundColor3 = PANEL
+rainLabel.BackgroundTransparency = 0.35
+rainLabel.TextColor3 = GOLD
+rainLabel.TextScaled = true
+rainLabel.Font = Enum.Font.GothamBold
+rainLabel.Text = ""
+rainLabel.Parent = screenGui
+addCorner(rainLabel, 8)
+
+task.spawn(function()
+	while true do
+		local now = os.time()
+		local rainUntil = Workspace:GetAttribute("RainUntil") or 0
+		local nextRain = Workspace:GetAttribute("NextRainAt") or 0
+		if rainUntil > now then
+			rainLabel.Text = L("rain_now", formatNumber(rainUntil - now))
+			rainLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+			rainLabel.BackgroundColor3 = Color3.fromRGB(200, 140, 20)
+		elseif nextRain > now then
+			local left = nextRain - now
+			rainLabel.Text = L("rain_in", string.format("%d:%02d", math.floor(left / 60), left % 60))
+			rainLabel.TextColor3 = GOLD
+			rainLabel.BackgroundColor3 = PANEL
+		else
+			rainLabel.Text = ""
+		end
+		task.wait(0.5)
+	end
+end)
+
+---------------------------------------------------------------------
+-- 効果音（Roblox に最初から入っている音）
+---------------------------------------------------------------------
+local SoundService = game:GetService("SoundService")
+local clickSound = Instance.new("Sound")
+clickSound.SoundId = "rbxasset://sounds/electronicpingshort.wav"
+clickSound.Volume = 0.35
+clickSound.Parent = SoundService
+
+local function playClick(pitch)
+	clickSound.PlaybackSpeed = pitch or 1
+	SoundService:PlayLocalSound(clickSound)
+end
+
 local toastArea = Instance.new("Frame")
 toastArea.AnchorPoint = Vector2.new(0.5, 0)
-toastArea.Position = UDim2.new(0.5, 0, 0, 96)
+toastArea.Position = UDim2.new(0.5, 0, 0, 126)
 toastArea.Size = UDim2.new(0, 520, 0, 120)
 toastArea.BackgroundTransparency = 1
 toastArea.Parent = screenGui
@@ -5022,7 +5212,36 @@ coinPopup.OnClientEvent:Connect(function(amount, isCrit, sourcePart)
 	if sourcePart == nil or sourcePart == coinButton then
 		playPress()
 	end
+	playClick(isCrit and 1.6 or 1)
 	showPopup(amount, isCrit, sourcePart)
+end)
+
+---------------------------------------------------------------------
+-- コインの雨で拾ったとき: 画面に「+N」が飛び出して音が鳴る
+---------------------------------------------------------------------
+local pickupRng = Random.new()
+pickupRemote.OnClientEvent:Connect(function(amount)
+	playClick(1.3 + pickupRng:NextNumber(0, 0.4))
+	local popup = Instance.new("TextLabel")
+	popup.AnchorPoint = Vector2.new(0.5, 0.5)
+	popup.Position = UDim2.new(0.5 + pickupRng:NextNumber(-0.12, 0.12), 0, 0.55 + pickupRng:NextNumber(-0.08, 0.08), 0)
+	popup.Size = UDim2.new(0, 220, 0, 50)
+	popup.BackgroundTransparency = 1
+	popup.Text = "+" .. formatNumber(amount)
+	popup.TextColor3 = GOLD
+	popup.TextStrokeTransparency = 0
+	popup.TextScaled = true
+	popup.Font = Enum.Font.GothamBlack
+	popup.Parent = screenGui
+	local tween = TweenService:Create(popup, TweenInfo.new(0.9, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Position = popup.Position - UDim2.new(0, 0, 0.12, 0),
+		TextTransparency = 1,
+		TextStrokeTransparency = 1,
+	})
+	tween.Completed:Connect(function()
+		popup:Destroy()
+	end)
+	tween:Play()
 end)
 ]]></string>
         </Properties>
@@ -5532,6 +5751,117 @@ RunService.RenderStepped:Connect(function(dt)
 		end
 	end
 end)
+
+---------------------------------------------------------------------
+-- 頭の上の称号と、お金持ちのオーラ（みんなの分を自分の言語で表示）
+---------------------------------------------------------------------
+local TITLE_COLORS = {
+	newbie = Color3.fromRGB(220, 220, 220),
+	collector = Color3.fromRGB(120, 230, 120),
+	rich = Color3.fromRGB(100, 180, 255),
+	millionaire = Color3.fromRGB(255, 210, 60),
+	billionaire = Color3.fromRGB(120, 230, 255),
+	god = Color3.fromRGB(255, 90, 220),
+}
+
+local function auraColor(titleKey)
+	for _, title in ipairs(UpgradeConfig.Titles) do
+		if title.key == titleKey then
+			return title.aura
+		end
+	end
+	return nil
+end
+
+local function applyTitle(owner)
+	local character = owner.Character
+	local head = character and character:FindFirstChild("Head")
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if not head then
+		return
+	end
+	local titleKey = owner:GetAttribute("TitleKey") or "newbie"
+	local stats = owner:FindFirstChild("leaderstats")
+	local rebirths = 0
+	local rebirthValue = stats and stats:FindFirstChild("Rebirths")
+	if rebirthValue then
+		rebirths = rebirthValue.Value
+	end
+
+	local gui = head:FindFirstChild("TitleGui")
+	if not gui then
+		gui = Instance.new("BillboardGui")
+		gui.Name = "TitleGui"
+		gui.Size = UDim2.new(0, 200, 0, 46)
+		gui.StudsOffset = Vector3.new(0, 2.6, 0)
+		gui.MaxDistance = 90
+		gui.Parent = head
+		local label = Instance.new("TextLabel")
+		label.Name = "Label"
+		label.Size = UDim2.new(1, 0, 1, 0)
+		label.BackgroundTransparency = 1
+		label.TextStrokeTransparency = 0
+		label.TextScaled = true
+		label.Font = Enum.Font.GothamBlack
+		label.Parent = gui
+	end
+	local stars = rebirths > 0 and ("  ★" .. rebirths) or ""
+	gui.Label.Text = L("title_" .. titleKey) .. stars
+	gui.Label.TextColor3 = TITLE_COLORS[titleKey] or Color3.fromRGB(255, 255, 255)
+
+	-- オーラ
+	local existing = root and root:FindFirstChild("RichAura")
+	local colorValue = auraColor(titleKey)
+	if root and colorValue then
+		if not existing then
+			existing = Instance.new("ParticleEmitter")
+			existing.Name = "RichAura"
+			existing.Rate = 14
+			existing.Lifetime = NumberRange.new(0.8, 1.4)
+			existing.Speed = NumberRange.new(1, 3)
+			existing.SpreadAngle = Vector2.new(180, 180)
+			existing.Size = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.5),
+				NumberSequenceKeypoint.new(1, 0),
+			})
+			existing.Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.2),
+				NumberSequenceKeypoint.new(1, 1),
+			})
+			existing.LightEmission = 1
+			existing.Parent = root
+		end
+		existing.Color = ColorSequence.new(colorValue)
+	elseif existing then
+		existing:Destroy()
+	end
+end
+
+local function watchTitle(owner)
+	owner:GetAttributeChangedSignal("TitleKey"):Connect(function()
+		applyTitle(owner)
+	end)
+	owner.CharacterAdded:Connect(function(character)
+		character:WaitForChild("Head", 10)
+		character:WaitForChild("HumanoidRootPart", 10)
+		applyTitle(owner)
+	end)
+	task.spawn(function()
+		local stats = owner:WaitForChild("leaderstats", 30)
+		local rebirthValue = stats and stats:WaitForChild("Rebirths", 10)
+		if rebirthValue then
+			rebirthValue.Changed:Connect(function()
+				applyTitle(owner)
+			end)
+		end
+		applyTitle(owner)
+	end)
+end
+
+for _, other in ipairs(Players:GetPlayers()) do
+	watchTitle(other)
+end
+Players.PlayerAdded:Connect(watchTitle)
 ]]></string>
         </Properties>
       </Item>

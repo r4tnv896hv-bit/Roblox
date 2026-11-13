@@ -133,6 +133,11 @@ local rebirthRemote = Instance.new("RemoteEvent")
 rebirthRemote.Name = "Rebirth"
 rebirthRemote.Parent = remotes
 
+-- コインの雨で拾った量をその人に知らせる（amount）
+local pickupRemote = Instance.new("RemoteEvent")
+pickupRemote.Name = "Pickup"
+pickupRemote.Parent = remotes
+
 -- 画面上部にお知らせを出す（text, 色）
 local announce = Instance.new("RemoteEvent")
 announce.Name = "Announce"
@@ -498,6 +503,12 @@ task.spawn(function()
 
 			local played = (secondsPlayed[player] or 0) + 1
 			secondsPlayed[player] = played
+
+			-- 頭の上の称号（クライアントが見た目を作る）
+			local titleKey = UpgradeConfig.GetTitle(DataStore2("coins", player):Get(STARTING_COINS)).key
+			if player:GetAttribute("TitleKey") ~= titleKey then
+				player:SetAttribute("TitleKey", titleKey)
+			end
 
 			-- 最後にいた時刻（オフライン報酬用）を 30 秒ごとに記録
 			if played % 30 == 0 then
@@ -1130,4 +1141,88 @@ makePortal(Vector3.new(16, SKY_Y + 2, 4), Color3.fromRGB(255, 200, 60), "portal_
 
 Players.PlayerRemoving:Connect(function(player)
 	portalCooldown[player] = nil
+end)
+
+---------------------------------------------------------------------
+-- コインの雨: 10 分ごとに空からコインが降ってきて、みんなで拾い合う
+-- Workspace の属性 NextRainAt / RainUntil（os.time）で画面にカウントダウンを出す
+---------------------------------------------------------------------
+local RAIN_CENTER = Vector3.new(0, 0, -8)
+local RAIN_RADIUS = 45
+local rainRng = Random.new()
+
+local function rainReward(player)
+	local perClick = UpgradeConfig.CoinsPerClick(DataStore2("clickLevel", player):Get(0))
+	return math.floor(math.max(10, perClick * 8 + getPerSecond(player) * 3) * getMultiplier(player))
+end
+
+local function dropRainCoin()
+	local angle = rainRng:NextNumber(0, math.pi * 2)
+	local radius = math.sqrt(rainRng:NextNumber()) * RAIN_RADIUS
+	local coin = Instance.new("Part")
+	coin.Name = "RainCoin"
+	coin.Shape = Enum.PartType.Cylinder
+	coin.Size = Vector3.new(0.4, 2.4, 2.4)
+	coin.Color = Color3.fromRGB(255, 200, 50)
+	coin.Material = Enum.Material.Metal
+	coin.Reflectance = 0.2
+	coin.CFrame = CFrame.new(RAIN_CENTER + Vector3.new(math.cos(angle) * radius, 70 + rainRng:NextNumber(0, 20), math.sin(angle) * radius))
+		* CFrame.Angles(rainRng:NextNumber(0, 3), rainRng:NextNumber(0, 3), rainRng:NextNumber(0, 3))
+	coin.CustomPhysicalProperties = PhysicalProperties.new(1, 0.6, 0.3)
+
+	local shine = Instance.new("PointLight")
+	shine.Color = coin.Color
+	shine.Range = 6
+	shine.Brightness = 1
+	shine.Parent = coin
+
+	local taken = false
+	coin.Touched:Connect(function(hit)
+		if taken or not hit.Parent then
+			return
+		end
+		local player = Players:GetPlayerFromCharacter(hit.Parent)
+		if not player or not loadedPlayers[player] then
+			return
+		end
+		taken = true
+		local amount = rainReward(player)
+		DataStore2("coins", player):Increment(amount, STARTING_COINS)
+		pickupRemote:FireClient(player, amount)
+		coin:Destroy()
+	end)
+
+	coin.Parent = Workspace
+	task.delay(15, function()
+		if coin.Parent then
+			coin:Destroy()
+		end
+	end)
+end
+
+task.spawn(function()
+	Workspace:SetAttribute("NextRainAt", os.time() + UpgradeConfig.RAIN_INTERVAL)
+	while true do
+		local nextRain = Workspace:GetAttribute("NextRainAt")
+		local warned = false
+		while os.time() < nextRain do
+			if not warned and nextRain - os.time() <= 60 then
+				warned = true
+				announce:FireAllClients("announce_rain_soon", Color3.fromRGB(255, 215, 80))
+			end
+			task.wait(1)
+		end
+
+		Workspace:SetAttribute("RainUntil", os.time() + UpgradeConfig.RAIN_DURATION)
+		announce:FireAllClients("announce_rain", Color3.fromRGB(255, 215, 80))
+		local stopAt = os.clock() + UpgradeConfig.RAIN_DURATION
+		while os.clock() < stopAt do
+			if next(loadedPlayers) then
+				dropRainCoin()
+			end
+			task.wait(0.12)
+		end
+		Workspace:SetAttribute("RainUntil", 0)
+		Workspace:SetAttribute("NextRainAt", os.time() + UpgradeConfig.RAIN_INTERVAL)
+	end
 end)
