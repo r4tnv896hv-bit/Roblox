@@ -1,13 +1,99 @@
 -- コインクリッカー: サーバー側
 -- 光る玉をクリックするとコインが増え、ショップでアップグレードを買えます。
 -- データは DataStore2 で自動保存されます。
+local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
 
 local DataStore2 = require(ServerScriptService.DataStore2)
 local UpgradeConfig = require(ReplicatedStorage.UpgradeConfig)
+
+---------------------------------------------------------------------
+-- Studio で DataStore が使えないとき（未公開、または API アクセスがオフ）は、
+-- メモリ上の仮の保存場所で動かす。停止するとデータは消える。
+---------------------------------------------------------------------
+local function createOfflineDataStoreService()
+	local function newStore(ordered)
+		local data = {}
+		local store = {}
+
+		function store:GetAsync(key)
+			return data[key]
+		end
+
+		function store:SetAsync(key, value)
+			data[key] = value
+		end
+
+		function store:UpdateAsync(key, transform)
+			local newValue = transform(data[key])
+			if newValue ~= nil then
+				data[key] = newValue
+			end
+			return newValue
+		end
+
+		if ordered then
+			function store:GetSortedAsync(ascending, pageSize)
+				local entries = {}
+				for key, value in pairs(data) do
+					table.insert(entries, { key = key, value = value })
+				end
+				table.sort(entries, function(a, b)
+					if ascending then
+						return a.value < b.value
+					end
+					return a.value > b.value
+				end)
+
+				local page = {}
+				for index = 1, math.min(pageSize, #entries) do
+					page[index] = entries[index]
+				end
+
+				return {
+					GetCurrentPage = function()
+						return page
+					end,
+				}
+			end
+		end
+
+		return store
+	end
+
+	local stores, orderedStores = {}, {}
+	local service = {}
+
+	function service:GetDataStore(name)
+		stores[name] = stores[name] or newStore(false)
+		return stores[name]
+	end
+
+	function service:GetOrderedDataStore(name)
+		orderedStores[name] = orderedStores[name] or newStore(true)
+		return orderedStores[name]
+	end
+
+	return service
+end
+
+if RunService:IsStudio() then
+	local dataStoresAvailable = pcall(function()
+		DataStoreService:GetDataStore("CoinClickerAccessCheck"):GetAsync("check")
+	end)
+
+	if not dataStoresAvailable then
+		warn("[CoinClicker] DataStore が使えないので、Studio 用の仮保存で動かします（停止するとデータは消えます）。")
+		local offlineService = createOfflineDataStoreService()
+		require(ServerScriptService.DataStore2.DataStoreServiceRetriever).Get = function()
+			return offlineService
+		end
+	end
+end
 
 local STARTING_COINS = 0
 local CLICK_COOLDOWN = 0.1 -- 連打ツール対策（秒）
