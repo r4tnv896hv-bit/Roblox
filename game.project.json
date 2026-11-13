@@ -12,6 +12,9 @@
 			},
 			"Decor": {
 				"$path": "game/src/server/Decor.server.lua"
+			},
+			"Props": {
+				"$path": "game/src/server/Props.server.lua"
 			}
 		},
 		"StarterPlayer": {

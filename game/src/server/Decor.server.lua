@@ -128,41 +128,13 @@ local coinButton = Workspace:WaitForChild("CoinButton")
 local BALL_X, BALL_Z = coinButton.Position.X, coinButton.Position.Z
 terrain:FillBlock(CFrame.new(0, -1, (-6 + BALL_Z + 6) / 2), Vector3.new(8, 2, math.abs(BALL_Z) - 4), Enum.Material.Cobblestone)
 
--- 木（幹は木の部品、葉は地形の葉っぱで自然な形に）
-local WOOD = Color3.fromRGB(95, 70, 50)
-for _ = 1, 45 do
-	local angle = rng:NextNumber(0, math.pi * 2)
-	local radius = rng:NextNumber(45, 160)
-	local spot = Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
-	if (spot - LAKE).Magnitude > 34 then
-		local height = rng:NextNumber(9, 15)
-		part({
-			Shape = Enum.PartType.Cylinder,
-			Size = Vector3.new(height, 1.6, 1.6),
-			CFrame = CFrame.new(spot + Vector3.new(0, height / 2, 0)) * CFrame.Angles(0, 0, math.rad(90)),
-			Color = WOOD,
-			Material = Enum.Material.Wood,
-		})
-		local leaf = rng:NextNumber(5, 7.5)
-		terrain:FillBall(spot + Vector3.new(0, height, 0), leaf, Enum.Material.LeafyGrass)
-		terrain:FillBall(spot + Vector3.new(rng:NextNumber(-2, 2), height + leaf * 0.8, rng:NextNumber(-2, 2)), leaf * 0.7, Enum.Material.LeafyGrass)
-	end
-end
-
--- 岩
-for _ = 1, 22 do
-	local angle = rng:NextNumber(0, math.pi * 2)
-	local radius = rng:NextNumber(30, 150)
-	local spot = Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
-	if (spot - LAKE).Magnitude > 30 then
-		terrain:FillBall(spot, rng:NextNumber(2, 4.5), Enum.Material.Rock)
-	end
-end
+-- 木と岩は Props スクリプトが置く（リアルなモデル、または地形で代わりに作る）
 
 ---------------------------------------------------------------------
 -- コインの玉: 大理石の台座に乗せて、本物の金属の金色にして、ふわふわ浮かせる
 ---------------------------------------------------------------------
 local center = Vector3.new(BALL_X, 0, BALL_Z)
+local WOOD = Color3.fromRGB(95, 70, 50)
 local STONE = Color3.fromRGB(230, 226, 218)
 local GOLD = Color3.fromRGB(255, 196, 70)
 

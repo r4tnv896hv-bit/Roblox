@@ -2975,41 +2975,13 @@ local coinButton = Workspace:WaitForChild("CoinButton")
 local BALL_X, BALL_Z = coinButton.Position.X, coinButton.Position.Z
 terrain:FillBlock(CFrame.new(0, -1, (-6 + BALL_Z + 6) / 2), Vector3.new(8, 2, math.abs(BALL_Z) - 4), Enum.Material.Cobblestone)
 
--- 木（幹は木の部品、葉は地形の葉っぱで自然な形に）
-local WOOD = Color3.fromRGB(95, 70, 50)
-for _ = 1, 45 do
-	local angle = rng:NextNumber(0, math.pi * 2)
-	local radius = rng:NextNumber(45, 160)
-	local spot = Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
-	if (spot - LAKE).Magnitude > 34 then
-		local height = rng:NextNumber(9, 15)
-		part({
-			Shape = Enum.PartType.Cylinder,
-			Size = Vector3.new(height, 1.6, 1.6),
-			CFrame = CFrame.new(spot + Vector3.new(0, height / 2, 0)) * CFrame.Angles(0, 0, math.rad(90)),
-			Color = WOOD,
-			Material = Enum.Material.Wood,
-		})
-		local leaf = rng:NextNumber(5, 7.5)
-		terrain:FillBall(spot + Vector3.new(0, height, 0), leaf, Enum.Material.LeafyGrass)
-		terrain:FillBall(spot + Vector3.new(rng:NextNumber(-2, 2), height + leaf * 0.8, rng:NextNumber(-2, 2)), leaf * 0.7, Enum.Material.LeafyGrass)
-	end
-end
-
--- 岩
-for _ = 1, 22 do
-	local angle = rng:NextNumber(0, math.pi * 2)
-	local radius = rng:NextNumber(30, 150)
-	local spot = Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
-	if (spot - LAKE).Magnitude > 30 then
-		terrain:FillBall(spot, rng:NextNumber(2, 4.5), Enum.Material.Rock)
-	end
-end
+-- 木と岩は Props スクリプトが置く（リアルなモデル、または地形で代わりに作る）
 
 ---------------------------------------------------------------------
 -- コインの玉: 大理石の台座に乗せて、本物の金属の金色にして、ふわふわ浮かせる
 ---------------------------------------------------------------------
 local center = Vector3.new(BALL_X, 0, BALL_Z)
+local WOOD = Color3.fromRGB(95, 70, 50)
 local STONE = Color3.fromRGB(230, 226, 218)
 local GOLD = Color3.fromRGB(255, 196, 70)
 
@@ -4225,27 +4197,175 @@ end)
 ]]></string>
       </Properties>
     </Item>
+    <Item class="Script" referent="18">
+      <Properties>
+        <string name="Name">Props</string>
+        <token name="RunContext">0</token>
+        <string name="Source"><![CDATA[-- リアルな木と岩: Creator Store のモデルを読み込んで並べる
+-- 読み込めるのは「ゲームの持ち主が入手したモデル」だけ。読み込めないときは地形の木と岩で代わりに作る。
+-- 安全のため、読み込んだモデルに入っているスクリプトはすべて消す。
+local InsertService = game:GetService("InsertService")
+local Workspace = game:GetService("Workspace")
+
+local terrain = Workspace.Terrain
+
+local TREE_ASSETS = { 3256343670, 9271152246 }
+local ROCK_ASSETS = { 1192366796, 8442632450 }
+local LAKE = Vector3.new(70, 0, 40)
+
+local props = Instance.new("Folder")
+props.Name = "Props"
+props.Parent = Workspace
+
+-- アセットを読み込んで、使えるモデルの一覧（パックなら中の1つ1つ）を返す
+local function loadVariants(assetIds)
+	local variants = {}
+	for _, assetId in ipairs(assetIds) do
+		local ok, container = pcall(function()
+			return InsertService:LoadAsset(assetId)
+		end)
+		if ok and container then
+			for _, object in ipairs(container:GetDescendants()) do
+				if object:IsA("LuaSourceContainer") then
+					object:Destroy()
+				end
+			end
+
+			local root = container:GetChildren()[1]
+			if root then
+				local models = {}
+				for _, child in ipairs(root:GetChildren()) do
+					if child:IsA("Model") then
+						table.insert(models, child)
+					end
+				end
+				if root:IsA("Model") and #models >= 2 then
+					for _, model in ipairs(models) do
+						table.insert(variants, model)
+					end
+				elseif root:IsA("Model") then
+					table.insert(variants, root)
+				elseif root:IsA("BasePart") then
+					local wrapper = Instance.new("Model")
+					root.Parent = wrapper
+					table.insert(variants, wrapper)
+				end
+			end
+		else
+			warn("[Props] could not load asset", assetId, "- using terrain instead")
+		end
+	end
+	return variants
+end
+
+-- モデルを高さ targetHeight に合わせて、地面（高さ 0）に置く
+local function place(template, spot, targetHeight, rng)
+	local model = template:Clone()
+	for _, object in ipairs(model:GetDescendants()) do
+		if object:IsA("BasePart") then
+			object.Anchored = true
+		end
+	end
+
+	local _, size = model:GetBoundingBox()
+	if size.Y > 0 then
+		pcall(function()
+			model:ScaleTo(model:GetScale() * (targetHeight / size.Y))
+		end)
+	end
+
+	model:PivotTo(CFrame.new(model:GetPivot().Position) * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0))
+	local boxCFrame, boxSize = model:GetBoundingBox()
+	local bottom = boxCFrame.Position.Y - boxSize.Y / 2
+	model:PivotTo(model:GetPivot() + Vector3.new(spot.X - boxCFrame.Position.X, -0.4 - bottom, spot.Z - boxCFrame.Position.Z))
+	model.Parent = props
+end
+
+local function randomSpot(rng, minRadius, maxRadius, avoidLakeBy)
+	for _ = 1, 10 do
+		local angle = rng:NextNumber(0, math.pi * 2)
+		local radius = rng:NextNumber(minRadius, maxRadius)
+		local spot = Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
+		if (spot - LAKE).Magnitude > avoidLakeBy then
+			return spot
+		end
+	end
+	return nil
+end
+
+---------------------------------------------------------------------
+-- 木
+---------------------------------------------------------------------
+local treeRng = Random.new(2026)
+local trees = loadVariants(TREE_ASSETS)
+
+for _ = 1, 40 do
+	local spot = randomSpot(treeRng, 45, 160, 34)
+	if spot then
+		if #trees > 0 then
+			place(trees[treeRng:NextInteger(1, #trees)], spot, treeRng:NextNumber(18, 28), treeRng)
+		else
+			-- 代わり: 木の幹と地形の葉っぱ
+			local height = treeRng:NextNumber(9, 15)
+			local trunk = Instance.new("Part")
+			trunk.Shape = Enum.PartType.Cylinder
+			trunk.Anchored = true
+			trunk.Size = Vector3.new(height, 1.6, 1.6)
+			trunk.CFrame = CFrame.new(spot + Vector3.new(0, height / 2, 0)) * CFrame.Angles(0, 0, math.rad(90))
+			trunk.Color = Color3.fromRGB(95, 70, 50)
+			trunk.Material = Enum.Material.Wood
+			trunk.Parent = props
+			local leaf = treeRng:NextNumber(5, 7.5)
+			terrain:FillBall(spot + Vector3.new(0, height, 0), leaf, Enum.Material.LeafyGrass)
+			terrain:FillBall(
+				spot + Vector3.new(treeRng:NextNumber(-2, 2), height + leaf * 0.8, treeRng:NextNumber(-2, 2)),
+				leaf * 0.7,
+				Enum.Material.LeafyGrass
+			)
+		end
+	end
+end
+
+---------------------------------------------------------------------
+-- 岩
+---------------------------------------------------------------------
+local rockRng = Random.new(77)
+local rocks = loadVariants(ROCK_ASSETS)
+
+for _ = 1, 22 do
+	local spot = randomSpot(rockRng, 30, 150, 30)
+	if spot then
+		if #rocks > 0 then
+			place(rocks[rockRng:NextInteger(1, #rocks)], spot, rockRng:NextNumber(3, 7), rockRng)
+		else
+			terrain:FillBall(spot, rockRng:NextNumber(2, 4.5), Enum.Material.Rock)
+		end
+	end
+end
+]]></string>
+      </Properties>
+    </Item>
   </Item>
-  <Item class="ServerStorage" referent="18">
+  <Item class="ServerStorage" referent="19">
     <Properties>
       <string name="Name">ServerStorage</string>
     </Properties>
-    <Item class="BoolValue" referent="19">
+    <Item class="BoolValue" referent="20">
       <Properties>
         <string name="Name">SaveInStudio</string>
         <bool name="Value">true</bool>
       </Properties>
     </Item>
   </Item>
-  <Item class="StarterPlayer" referent="20">
+  <Item class="StarterPlayer" referent="21">
     <Properties>
       <string name="Name">StarterPlayer</string>
     </Properties>
-    <Item class="StarterPlayerScripts" referent="21">
+    <Item class="StarterPlayerScripts" referent="22">
       <Properties>
         <string name="Name">StarterPlayerScripts</string>
       </Properties>
-      <Item class="LocalScript" referent="22">
+      <Item class="LocalScript" referent="23">
         <Properties>
           <string name="Name">CoinGui</string>
           <string name="Source"><![CDATA[-- コインクリッカー: 画面表示（コイン数・ショップ・クリック演出）
@@ -4907,7 +5027,7 @@ end)
 ]]></string>
         </Properties>
       </Item>
-      <Item class="LocalScript" referent="23">
+      <Item class="LocalScript" referent="24">
         <Properties>
           <string name="Name">PetsClient</string>
           <string name="Source"><![CDATA[-- ペット: ついてくる見た目・卵を割ったときの演出・画面のペット表示
