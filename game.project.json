@@ -19,6 +19,12 @@
 					"$path": "game/src/client/CoinGui.client.lua"
 				}
 			}
+		},
+		"ReplicatedStorage": {
+			"$className": "ReplicatedStorage",
+			"UpgradeConfig": {
+				"$path": "game/src/shared/UpgradeConfig.lua"
+			}
 		}
 	}
 }

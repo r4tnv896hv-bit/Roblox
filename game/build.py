@@ -55,8 +55,13 @@ def main():
                           read(os.path.join(ROOT, "game/src/client/CoinGui.client.lua"))),
         ),
     )
+    replicated = item(
+        "ReplicatedStorage", "ReplicatedStorage",
+        children=item("ModuleScript", "UpgradeConfig",
+                      read(os.path.join(ROOT, "game/src/shared/UpgradeConfig.lua"))),
+    )
     with open(OUT, "w", encoding="utf-8") as f:
-        f.write('<roblox version="4">\n' + server + starter + "</roblox>\n")
+        f.write('<roblox version="4">\n' + server + replicated + starter + "</roblox>\n")
     print("wrote", OUT)
 
 
