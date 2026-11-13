@@ -92,16 +92,68 @@ function UpgradeConfig.RebirthCost(rebirths)
 	return math.floor(UpgradeConfig.REBIRTH_BASE_COST * UpgradeConfig.REBIRTH_COST_GROWTH ^ rebirths)
 end
 
--- コインの倍率（転生 × フレンド）
-function UpgradeConfig.Multiplier(rebirths, friendCount)
+-- コインの倍率（転生 × フレンド × コイン2倍パス）
+function UpgradeConfig.Multiplier(rebirths, friendCount, hasDoubleCoins)
 	local friends = math.min(friendCount, UpgradeConfig.MAX_FRIENDS_COUNTED)
-	return (1 + rebirths * UpgradeConfig.REBIRTH_BONUS) * (1 + friends * UpgradeConfig.FRIEND_BONUS)
+	local multiplier = (1 + rebirths * UpgradeConfig.REBIRTH_BONUS) * (1 + friends * UpgradeConfig.FRIEND_BONUS)
+	if hasDoubleCoins then
+		multiplier = multiplier * 2
+	end
+	return multiplier
 end
 
 -- 連続ログイン n 日目の報酬
 function UpgradeConfig.DailyReward(streak, rebirths)
 	local day = math.min(streak, UpgradeConfig.DAILY_MAX_STREAK)
 	return UpgradeConfig.DAILY_BASE_REWARD * day * (1 + rebirths)
+end
+
+---------------------------------------------------------------------
+-- 課金アイテム（Robux）
+-- id は Creator Dashboard で作ったアイテムの ID。0 のものはショップに出さない。
+-- price は表示用の目安（実際の値段は Roblox から取得して表示する）。
+---------------------------------------------------------------------
+UpgradeConfig.GamePasses = {
+	doubleCoins = {
+		id = 0,
+		name = "コイン2倍",
+		description = "ずっとコインが2倍！",
+		price = 99,
+	},
+	autoClick = {
+		id = 0,
+		name = "オートクリック",
+		description = "毎秒3回、自動でクリック",
+		price = 149,
+	},
+}
+UpgradeConfig.GamePassOrder = { "doubleCoins", "autoClick" }
+UpgradeConfig.AUTO_CLICKS_PER_SECOND = 3
+
+UpgradeConfig.Products = {
+	smallPack = {
+		id = 0,
+		name = "コインパック（小）",
+		description = "10分ぶんのコインをすぐゲット",
+		price = 25,
+		minutes = 10,
+		minimum = 1000,
+	},
+	bigPack = {
+		id = 0,
+		name = "コインパック（大）",
+		description = "1時間ぶんのコインをすぐゲット",
+		price = 99,
+		minutes = 60,
+		minimum = 10000,
+	},
+}
+UpgradeConfig.ProductOrder = { "smallPack", "bigPack" }
+
+-- コインパックでもらえる量（今の稼ぎに合わせて増える）
+function UpgradeConfig.PackReward(product, perClick, perSecond, multiplier)
+	local base = (perSecond * 60 + perClick * 30) * product.minutes
+	return math.floor(math.max(product.minimum, base) * multiplier)
 end
 
 return UpgradeConfig
@@ -2673,6 +2725,7 @@ end
 -- 光る玉をクリックするとコインが増え、ショップでアップグレードを買えます。
 -- データは DataStore2 で自動保存されます。
 local DataStoreService = game:GetService("DataStoreService")
+local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -2770,7 +2823,7 @@ local STARTING_COINS = 0
 local CLICK_COOLDOWN = 0.1 -- 連打ツール対策（秒）
 
 -- 使うキーは必ず Combine する
-DataStore2.Combine("DATA", "coins", "rebirths", "lastDailyDay", "dailyStreak")
+DataStore2.Combine("DATA", "coins", "rebirths", "lastDailyDay", "dailyStreak", "purchaseHistory")
 for _, upgradeId in ipairs(UpgradeConfig.Order) do
 	DataStore2.Combine("DATA", UpgradeConfig.Upgrades[upgradeId].key)
 end
@@ -2902,7 +2955,11 @@ end
 -- 倍率（転生 × フレンドボーナス）
 ---------------------------------------------------------------------
 local function getMultiplier(player)
-	return UpgradeConfig.Multiplier(DataStore2("rebirths", player):Get(0), player:GetAttribute("FriendCount") or 0)
+	return UpgradeConfig.Multiplier(
+		DataStore2("rebirths", player):Get(0),
+		player:GetAttribute("FriendCount") or 0,
+		player:GetAttribute("Pass_doubleCoins") == true
+	)
 end
 
 local function refreshMultiplier(player)
@@ -2977,8 +3034,23 @@ local function giveDailyReward(player)
 	)
 end
 
+-- 持っているゲームパスを属性に書く（Pass_doubleCoins など）
+local function checkGamePasses(player)
+	for passKey, pass in pairs(UpgradeConfig.GamePasses) do
+		if pass.id ~= 0 then
+			local ok, owns = pcall(function()
+				return MarketplaceService:UserOwnsGamePassAsync(player.UserId, pass.id)
+			end)
+			if ok and owns then
+				player:SetAttribute("Pass_" .. passKey, true)
+			end
+		end
+	end
+end
+
 function onPlayerLoaded(player)
 	player:SetAttribute("FriendCount", 0)
+	checkGamePasses(player)
 	refreshMultiplier(player)
 	updateFriendBonus()
 
@@ -3072,6 +3144,10 @@ task.spawn(function()
 				DataStore2("autoLevel", player):Get(0),
 				DataStore2("factoryLevel", player):Get(0)
 			)
+			if player:GetAttribute("Pass_autoClick") then
+				perSecond = perSecond
+					+ UpgradeConfig.CoinsPerClick(DataStore2("clickLevel", player):Get(0)) * UpgradeConfig.AUTO_CLICKS_PER_SECOND
+			end
 			perSecond = math.floor(perSecond * getMultiplier(player))
 			if perSecond > 0 then
 				DataStore2("coins", player):Increment(perSecond, STARTING_COINS)
@@ -3328,6 +3404,81 @@ if rankingOk then
 else
 	rankLabels[1].Text = "ランキングは公開後に動きます"
 end
+
+
+---------------------------------------------------------------------
+-- 課金: ゲームパス（買い切り）
+---------------------------------------------------------------------
+MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, passId, purchased)
+	if not purchased then
+		return
+	end
+	for passKey, pass in pairs(UpgradeConfig.GamePasses) do
+		if pass.id == passId then
+			player:SetAttribute("Pass_" .. passKey, true)
+			refreshMultiplier(player)
+			announce:FireAllClients(string.format("%s が「%s」をゲット！", player.DisplayName, pass.name), ANNOUNCE_PINK)
+		end
+	end
+end)
+
+---------------------------------------------------------------------
+-- 課金: デベロッパー製品（コインパック、何度でも買える）
+-- 同じ購入を2回渡さないよう、購入 ID を記録してから保存する
+---------------------------------------------------------------------
+local function findProduct(productId)
+	for _, product in pairs(UpgradeConfig.Products) do
+		if product.id ~= 0 and product.id == productId then
+			return product
+		end
+	end
+	return nil
+end
+
+MarketplaceService.ProcessReceipt = function(receipt)
+	local player = Players:GetPlayerByUserId(receipt.PlayerId)
+	if not player or not loadedPlayers[player] then
+		return Enum.ProductPurchaseDecision.NotProcessedYet
+	end
+
+	local product = findProduct(receipt.ProductId)
+	if not product then
+		return Enum.ProductPurchaseDecision.NotProcessedYet
+	end
+
+	local historyStore = DataStore2("purchaseHistory", player)
+	local history = historyStore:Get({})
+	if table.find(history, receipt.PurchaseId) then
+		return Enum.ProductPurchaseDecision.PurchaseGranted
+	end
+
+	local perClick = UpgradeConfig.CoinsPerClick(DataStore2("clickLevel", player):Get(0))
+	local perSecond = UpgradeConfig.CoinsPerSecond(
+		DataStore2("autoLevel", player):Get(0),
+		DataStore2("factoryLevel", player):Get(0)
+	)
+	local reward = UpgradeConfig.PackReward(product, perClick, perSecond, getMultiplier(player))
+	DataStore2("coins", player):Increment(reward, STARTING_COINS)
+
+	table.insert(history, receipt.PurchaseId)
+	while #history > 50 do
+		table.remove(history, 1)
+	end
+	historyStore:Set(history)
+
+	local saved = pcall(function()
+		DataStore2.SaveAll(player)
+	end)
+	if not saved then
+		return Enum.ProductPurchaseDecision.NotProcessedYet
+	end
+
+	announce:FireAllClients(
+		string.format("%s が%sで +%d コイン！", player.DisplayName, product.name, reward),
+		ANNOUNCE_GOLD
+	)
+	return Enum.ProductPurchaseDecision.PurchaseGranted
+end
 ]]></string>
       </Properties>
     </Item>
@@ -3356,6 +3507,7 @@ end
           <string name="Name">CoinGui</string>
           <string name="Source"><![CDATA[-- コインクリッカー: 画面表示（コイン数・ショップ・クリック演出）
 local Players = game:GetService("Players")
+local MarketplaceService = game:GetService("MarketplaceService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SocialService = game:GetService("SocialService")
 local TweenService = game:GetService("TweenService")
@@ -3710,6 +3862,116 @@ announceRemote.OnClientEvent:Connect(function(text, color)
 		end
 	end)
 end)
+
+---------------------------------------------------------------------
+-- 右: Robux ショップ（ID を設定したアイテムだけ出す）
+---------------------------------------------------------------------
+local ROBUX_COLOR = Color3.fromRGB(0, 170, 90)
+local OWNED_COLOR = Color3.fromRGB(80, 80, 80)
+
+local robuxShop = Instance.new("Frame")
+robuxShop.AnchorPoint = Vector2.new(1, 0.5)
+robuxShop.Position = UDim2.new(1, -16, 0.5, 0)
+robuxShop.Size = UDim2.new(0, 220, 0, 0)
+robuxShop.AutomaticSize = Enum.AutomaticSize.Y
+robuxShop.BackgroundColor3 = PANEL
+robuxShop.BackgroundTransparency = 0.2
+robuxShop.Visible = false
+robuxShop.Parent = screenGui
+addCorner(robuxShop, 12)
+addStroke(robuxShop, GOLD, 2)
+
+local robuxPadding = Instance.new("UIPadding")
+robuxPadding.PaddingTop = UDim.new(0, 10)
+robuxPadding.PaddingBottom = UDim.new(0, 10)
+robuxPadding.PaddingLeft = UDim.new(0, 10)
+robuxPadding.PaddingRight = UDim.new(0, 10)
+robuxPadding.Parent = robuxShop
+
+local robuxLayout = Instance.new("UIListLayout")
+robuxLayout.Padding = UDim.new(0, 8)
+robuxLayout.SortOrder = Enum.SortOrder.LayoutOrder
+robuxLayout.Parent = robuxShop
+
+local robuxTitle = Instance.new("TextLabel")
+robuxTitle.LayoutOrder = 0
+robuxTitle.Size = UDim2.new(1, 0, 0, 28)
+robuxTitle.BackgroundTransparency = 1
+robuxTitle.Text = "スペシャルショップ"
+robuxTitle.TextColor3 = GOLD
+robuxTitle.TextScaled = true
+robuxTitle.Font = Enum.Font.GothamBold
+robuxTitle.Parent = robuxShop
+
+local function makeRobuxButton(order, item, infoType, onClick)
+	local button = Instance.new("TextButton")
+	button.LayoutOrder = order
+	button.Size = UDim2.new(1, 0, 0, 64)
+	button.BackgroundColor3 = ROBUX_COLOR
+	button.TextColor3 = Color3.new(1, 1, 1)
+	button.TextSize = 15
+	button.TextWrapped = true
+	button.Font = Enum.Font.GothamMedium
+	button.Parent = robuxShop
+	addCorner(button, 8)
+	addStroke(button, Color3.new(1, 1, 1), 1)
+	addShine(button)
+
+	local price = item.price
+	local function setText(suffix)
+		button.Text = string.format("%s\n%s\n%s", item.name, item.description, suffix)
+	end
+	setText("R$ " .. price)
+
+	-- 実際の値段を Roblox から取ってくる
+	task.spawn(function()
+		local ok, info = pcall(function()
+			return MarketplaceService:GetProductInfo(item.id, infoType)
+		end)
+		if ok and info and info.PriceInRobux then
+			price = info.PriceInRobux
+			if button:GetAttribute("Owned") ~= true then
+				setText("R$ " .. price)
+			end
+		end
+	end)
+
+	button.Activated:Connect(onClick)
+	robuxShop.Visible = true
+	return button, setText
+end
+
+for index, passKey in ipairs(UpgradeConfig.GamePassOrder) do
+	local pass = UpgradeConfig.GamePasses[passKey]
+	if pass.id ~= 0 then
+		local attribute = "Pass_" .. passKey
+		local button, setText
+		button, setText = makeRobuxButton(index, pass, Enum.InfoType.GamePass, function()
+			if player:GetAttribute(attribute) ~= true then
+				MarketplaceService:PromptGamePassPurchase(player, pass.id)
+			end
+		end)
+
+		local function updateOwned()
+			if player:GetAttribute(attribute) == true then
+				button:SetAttribute("Owned", true)
+				button.BackgroundColor3 = OWNED_COLOR
+				setText("購入済み")
+			end
+		end
+		player:GetAttributeChangedSignal(attribute):Connect(updateOwned)
+		updateOwned()
+	end
+end
+
+for index, productKey in ipairs(UpgradeConfig.ProductOrder) do
+	local product = UpgradeConfig.Products[productKey]
+	if product.id ~= 0 then
+		makeRobuxButton(10 + index, product, Enum.InfoType.Product, function()
+			MarketplaceService:PromptProductPurchase(player, product.id)
+		end)
+	end
+end
 
 ---------------------------------------------------------------------
 -- 画面が小さい（スマホなど）ときは UI 全体を縮める

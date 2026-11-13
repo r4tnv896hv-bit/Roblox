@@ -1,5 +1,6 @@
 -- コインクリッカー: 画面表示（コイン数・ショップ・クリック演出）
 local Players = game:GetService("Players")
+local MarketplaceService = game:GetService("MarketplaceService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SocialService = game:GetService("SocialService")
 local TweenService = game:GetService("TweenService")
@@ -354,6 +355,116 @@ announceRemote.OnClientEvent:Connect(function(text, color)
 		end
 	end)
 end)
+
+---------------------------------------------------------------------
+-- 右: Robux ショップ（ID を設定したアイテムだけ出す）
+---------------------------------------------------------------------
+local ROBUX_COLOR = Color3.fromRGB(0, 170, 90)
+local OWNED_COLOR = Color3.fromRGB(80, 80, 80)
+
+local robuxShop = Instance.new("Frame")
+robuxShop.AnchorPoint = Vector2.new(1, 0.5)
+robuxShop.Position = UDim2.new(1, -16, 0.5, 0)
+robuxShop.Size = UDim2.new(0, 220, 0, 0)
+robuxShop.AutomaticSize = Enum.AutomaticSize.Y
+robuxShop.BackgroundColor3 = PANEL
+robuxShop.BackgroundTransparency = 0.2
+robuxShop.Visible = false
+robuxShop.Parent = screenGui
+addCorner(robuxShop, 12)
+addStroke(robuxShop, GOLD, 2)
+
+local robuxPadding = Instance.new("UIPadding")
+robuxPadding.PaddingTop = UDim.new(0, 10)
+robuxPadding.PaddingBottom = UDim.new(0, 10)
+robuxPadding.PaddingLeft = UDim.new(0, 10)
+robuxPadding.PaddingRight = UDim.new(0, 10)
+robuxPadding.Parent = robuxShop
+
+local robuxLayout = Instance.new("UIListLayout")
+robuxLayout.Padding = UDim.new(0, 8)
+robuxLayout.SortOrder = Enum.SortOrder.LayoutOrder
+robuxLayout.Parent = robuxShop
+
+local robuxTitle = Instance.new("TextLabel")
+robuxTitle.LayoutOrder = 0
+robuxTitle.Size = UDim2.new(1, 0, 0, 28)
+robuxTitle.BackgroundTransparency = 1
+robuxTitle.Text = "スペシャルショップ"
+robuxTitle.TextColor3 = GOLD
+robuxTitle.TextScaled = true
+robuxTitle.Font = Enum.Font.GothamBold
+robuxTitle.Parent = robuxShop
+
+local function makeRobuxButton(order, item, infoType, onClick)
+	local button = Instance.new("TextButton")
+	button.LayoutOrder = order
+	button.Size = UDim2.new(1, 0, 0, 64)
+	button.BackgroundColor3 = ROBUX_COLOR
+	button.TextColor3 = Color3.new(1, 1, 1)
+	button.TextSize = 15
+	button.TextWrapped = true
+	button.Font = Enum.Font.GothamMedium
+	button.Parent = robuxShop
+	addCorner(button, 8)
+	addStroke(button, Color3.new(1, 1, 1), 1)
+	addShine(button)
+
+	local price = item.price
+	local function setText(suffix)
+		button.Text = string.format("%s\n%s\n%s", item.name, item.description, suffix)
+	end
+	setText("R$ " .. price)
+
+	-- 実際の値段を Roblox から取ってくる
+	task.spawn(function()
+		local ok, info = pcall(function()
+			return MarketplaceService:GetProductInfo(item.id, infoType)
+		end)
+		if ok and info and info.PriceInRobux then
+			price = info.PriceInRobux
+			if button:GetAttribute("Owned") ~= true then
+				setText("R$ " .. price)
+			end
+		end
+	end)
+
+	button.Activated:Connect(onClick)
+	robuxShop.Visible = true
+	return button, setText
+end
+
+for index, passKey in ipairs(UpgradeConfig.GamePassOrder) do
+	local pass = UpgradeConfig.GamePasses[passKey]
+	if pass.id ~= 0 then
+		local attribute = "Pass_" .. passKey
+		local button, setText
+		button, setText = makeRobuxButton(index, pass, Enum.InfoType.GamePass, function()
+			if player:GetAttribute(attribute) ~= true then
+				MarketplaceService:PromptGamePassPurchase(player, pass.id)
+			end
+		end)
+
+		local function updateOwned()
+			if player:GetAttribute(attribute) == true then
+				button:SetAttribute("Owned", true)
+				button.BackgroundColor3 = OWNED_COLOR
+				setText("購入済み")
+			end
+		end
+		player:GetAttributeChangedSignal(attribute):Connect(updateOwned)
+		updateOwned()
+	end
+end
+
+for index, productKey in ipairs(UpgradeConfig.ProductOrder) do
+	local product = UpgradeConfig.Products[productKey]
+	if product.id ~= 0 then
+		makeRobuxButton(10 + index, product, Enum.InfoType.Product, function()
+			MarketplaceService:PromptProductPurchase(player, product.id)
+		end)
+	end
+end
 
 ---------------------------------------------------------------------
 -- 画面が小さい（スマホなど）ときは UI 全体を縮める

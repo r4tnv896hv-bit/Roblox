@@ -2,6 +2,7 @@
 -- 光る玉をクリックするとコインが増え、ショップでアップグレードを買えます。
 -- データは DataStore2 で自動保存されます。
 local DataStoreService = game:GetService("DataStoreService")
+local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -99,7 +100,7 @@ local STARTING_COINS = 0
 local CLICK_COOLDOWN = 0.1 -- 連打ツール対策（秒）
 
 -- 使うキーは必ず Combine する
-DataStore2.Combine("DATA", "coins", "rebirths", "lastDailyDay", "dailyStreak")
+DataStore2.Combine("DATA", "coins", "rebirths", "lastDailyDay", "dailyStreak", "purchaseHistory")
 for _, upgradeId in ipairs(UpgradeConfig.Order) do
 	DataStore2.Combine("DATA", UpgradeConfig.Upgrades[upgradeId].key)
 end
@@ -231,7 +232,11 @@ end
 -- 倍率（転生 × フレンドボーナス）
 ---------------------------------------------------------------------
 local function getMultiplier(player)
-	return UpgradeConfig.Multiplier(DataStore2("rebirths", player):Get(0), player:GetAttribute("FriendCount") or 0)
+	return UpgradeConfig.Multiplier(
+		DataStore2("rebirths", player):Get(0),
+		player:GetAttribute("FriendCount") or 0,
+		player:GetAttribute("Pass_doubleCoins") == true
+	)
 end
 
 local function refreshMultiplier(player)
@@ -306,8 +311,23 @@ local function giveDailyReward(player)
 	)
 end
 
+-- 持っているゲームパスを属性に書く（Pass_doubleCoins など）
+local function checkGamePasses(player)
+	for passKey, pass in pairs(UpgradeConfig.GamePasses) do
+		if pass.id ~= 0 then
+			local ok, owns = pcall(function()
+				return MarketplaceService:UserOwnsGamePassAsync(player.UserId, pass.id)
+			end)
+			if ok and owns then
+				player:SetAttribute("Pass_" .. passKey, true)
+			end
+		end
+	end
+end
+
 function onPlayerLoaded(player)
 	player:SetAttribute("FriendCount", 0)
+	checkGamePasses(player)
 	refreshMultiplier(player)
 	updateFriendBonus()
 
@@ -401,6 +421,10 @@ task.spawn(function()
 				DataStore2("autoLevel", player):Get(0),
 				DataStore2("factoryLevel", player):Get(0)
 			)
+			if player:GetAttribute("Pass_autoClick") then
+				perSecond = perSecond
+					+ UpgradeConfig.CoinsPerClick(DataStore2("clickLevel", player):Get(0)) * UpgradeConfig.AUTO_CLICKS_PER_SECOND
+			end
 			perSecond = math.floor(perSecond * getMultiplier(player))
 			if perSecond > 0 then
 				DataStore2("coins", player):Increment(perSecond, STARTING_COINS)
@@ -656,4 +680,79 @@ if rankingOk then
 	end)
 else
 	rankLabels[1].Text = "ランキングは公開後に動きます"
+end
+
+
+---------------------------------------------------------------------
+-- 課金: ゲームパス（買い切り）
+---------------------------------------------------------------------
+MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, passId, purchased)
+	if not purchased then
+		return
+	end
+	for passKey, pass in pairs(UpgradeConfig.GamePasses) do
+		if pass.id == passId then
+			player:SetAttribute("Pass_" .. passKey, true)
+			refreshMultiplier(player)
+			announce:FireAllClients(string.format("%s が「%s」をゲット！", player.DisplayName, pass.name), ANNOUNCE_PINK)
+		end
+	end
+end)
+
+---------------------------------------------------------------------
+-- 課金: デベロッパー製品（コインパック、何度でも買える）
+-- 同じ購入を2回渡さないよう、購入 ID を記録してから保存する
+---------------------------------------------------------------------
+local function findProduct(productId)
+	for _, product in pairs(UpgradeConfig.Products) do
+		if product.id ~= 0 and product.id == productId then
+			return product
+		end
+	end
+	return nil
+end
+
+MarketplaceService.ProcessReceipt = function(receipt)
+	local player = Players:GetPlayerByUserId(receipt.PlayerId)
+	if not player or not loadedPlayers[player] then
+		return Enum.ProductPurchaseDecision.NotProcessedYet
+	end
+
+	local product = findProduct(receipt.ProductId)
+	if not product then
+		return Enum.ProductPurchaseDecision.NotProcessedYet
+	end
+
+	local historyStore = DataStore2("purchaseHistory", player)
+	local history = historyStore:Get({})
+	if table.find(history, receipt.PurchaseId) then
+		return Enum.ProductPurchaseDecision.PurchaseGranted
+	end
+
+	local perClick = UpgradeConfig.CoinsPerClick(DataStore2("clickLevel", player):Get(0))
+	local perSecond = UpgradeConfig.CoinsPerSecond(
+		DataStore2("autoLevel", player):Get(0),
+		DataStore2("factoryLevel", player):Get(0)
+	)
+	local reward = UpgradeConfig.PackReward(product, perClick, perSecond, getMultiplier(player))
+	DataStore2("coins", player):Increment(reward, STARTING_COINS)
+
+	table.insert(history, receipt.PurchaseId)
+	while #history > 50 do
+		table.remove(history, 1)
+	end
+	historyStore:Set(history)
+
+	local saved = pcall(function()
+		DataStore2.SaveAll(player)
+	end)
+	if not saved then
+		return Enum.ProductPurchaseDecision.NotProcessedYet
+	end
+
+	announce:FireAllClients(
+		string.format("%s が%sで +%d コイン！", player.DisplayName, product.name, reward),
+		ANNOUNCE_GOLD
+	)
+	return Enum.ProductPurchaseDecision.PurchaseGranted
 end

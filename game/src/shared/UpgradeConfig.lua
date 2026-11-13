@@ -84,16 +84,68 @@ function UpgradeConfig.RebirthCost(rebirths)
 	return math.floor(UpgradeConfig.REBIRTH_BASE_COST * UpgradeConfig.REBIRTH_COST_GROWTH ^ rebirths)
 end
 
--- コインの倍率（転生 × フレンド）
-function UpgradeConfig.Multiplier(rebirths, friendCount)
+-- コインの倍率（転生 × フレンド × コイン2倍パス）
+function UpgradeConfig.Multiplier(rebirths, friendCount, hasDoubleCoins)
 	local friends = math.min(friendCount, UpgradeConfig.MAX_FRIENDS_COUNTED)
-	return (1 + rebirths * UpgradeConfig.REBIRTH_BONUS) * (1 + friends * UpgradeConfig.FRIEND_BONUS)
+	local multiplier = (1 + rebirths * UpgradeConfig.REBIRTH_BONUS) * (1 + friends * UpgradeConfig.FRIEND_BONUS)
+	if hasDoubleCoins then
+		multiplier = multiplier * 2
+	end
+	return multiplier
 end
 
 -- 連続ログイン n 日目の報酬
 function UpgradeConfig.DailyReward(streak, rebirths)
 	local day = math.min(streak, UpgradeConfig.DAILY_MAX_STREAK)
 	return UpgradeConfig.DAILY_BASE_REWARD * day * (1 + rebirths)
+end
+
+---------------------------------------------------------------------
+-- 課金アイテム（Robux）
+-- id は Creator Dashboard で作ったアイテムの ID。0 のものはショップに出さない。
+-- price は表示用の目安（実際の値段は Roblox から取得して表示する）。
+---------------------------------------------------------------------
+UpgradeConfig.GamePasses = {
+	doubleCoins = {
+		id = 0,
+		name = "コイン2倍",
+		description = "ずっとコインが2倍！",
+		price = 99,
+	},
+	autoClick = {
+		id = 0,
+		name = "オートクリック",
+		description = "毎秒3回、自動でクリック",
+		price = 149,
+	},
+}
+UpgradeConfig.GamePassOrder = { "doubleCoins", "autoClick" }
+UpgradeConfig.AUTO_CLICKS_PER_SECOND = 3
+
+UpgradeConfig.Products = {
+	smallPack = {
+		id = 0,
+		name = "コインパック（小）",
+		description = "10分ぶんのコインをすぐゲット",
+		price = 25,
+		minutes = 10,
+		minimum = 1000,
+	},
+	bigPack = {
+		id = 0,
+		name = "コインパック（大）",
+		description = "1時間ぶんのコインをすぐゲット",
+		price = 99,
+		minutes = 60,
+		minimum = 10000,
+	},
+}
+UpgradeConfig.ProductOrder = { "smallPack", "bigPack" }
+
+-- コインパックでもらえる量（今の稼ぎに合わせて増える）
+function UpgradeConfig.PackReward(product, perClick, perSecond, multiplier)
+	local base = (perSecond * 60 + perClick * 30) * product.minutes
+	return math.floor(math.max(product.minimum, base) * multiplier)
 end
 
 return UpgradeConfig
