@@ -339,8 +339,8 @@ end)
 
 -- 週末イベントの帯
 local weekendLabel = Instance.new("TextLabel")
-weekendLabel.AnchorPoint = Vector2.new(1, 0)
-weekendLabel.Position = UDim2.new(1, -16, 0, 60)
+weekendLabel.AnchorPoint = Vector2.new(0, 0)
+weekendLabel.Position = UDim2.new(0, 16, 0, 60)
 weekendLabel.Size = UDim2.new(0, 230, 0, 34)
 weekendLabel.BackgroundColor3 = Color3.fromRGB(230, 60, 120)
 weekendLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
