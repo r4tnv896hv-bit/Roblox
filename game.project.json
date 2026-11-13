@@ -28,6 +28,15 @@
 			"UpgradeConfig": {
 				"$path": "game/src/shared/UpgradeConfig.lua"
 			}
+		},
+		"ServerStorage": {
+			"$className": "ServerStorage",
+			"SaveInStudio": {
+				"$className": "BoolValue",
+				"$properties": {
+					"Value": true
+				}
+			}
 		}
 	}
 }

@@ -3332,15 +3332,26 @@ end
       </Properties>
     </Item>
   </Item>
-  <Item class="StarterPlayer" referent="16">
+  <Item class="ServerStorage" referent="16">
+    <Properties>
+      <string name="Name">ServerStorage</string>
+    </Properties>
+    <Item class="BoolValue" referent="17">
+      <Properties>
+        <string name="Name">SaveInStudio</string>
+        <bool name="Value">true</bool>
+      </Properties>
+    </Item>
+  </Item>
+  <Item class="StarterPlayer" referent="18">
     <Properties>
       <string name="Name">StarterPlayer</string>
     </Properties>
-    <Item class="StarterPlayerScripts" referent="17">
+    <Item class="StarterPlayerScripts" referent="19">
       <Properties>
         <string name="Name">StarterPlayerScripts</string>
       </Properties>
-      <Item class="LocalScript" referent="18">
+      <Item class="LocalScript" referent="20">
         <Properties>
           <string name="Name">CoinGui</string>
           <string name="Source"><![CDATA[-- コインクリッカー: 画面表示（コイン数・ショップ・クリック演出）
