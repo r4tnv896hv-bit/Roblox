@@ -1,0 +1,38 @@
+{
+	"name": "OnlineShopTycoon",
+	"tree": {
+		"$className": "DataModel",
+		"Lighting": {
+			"$className": "Lighting",
+			"$properties": {
+				"Technology": "Future",
+				"GlobalShadows": true
+			}
+		},
+		"ReplicatedStorage": {
+			"$className": "ReplicatedStorage",
+			"ShopConfig": { "$path": "src/shared/ShopConfig.lua" },
+			"Locale": { "$path": "src/shared/Locale.lua" }
+		},
+		"ServerScriptService": {
+			"$className": "ServerScriptService",
+			"DataStore2": { "$path": "../../DataStore2" },
+			"Main": { "$path": "src/server/Main.server.lua" },
+			"World": { "$path": "src/server/World.server.lua" }
+		},
+		"ServerStorage": {
+			"$className": "ServerStorage",
+			"SaveInStudio": {
+				"$className": "BoolValue",
+				"$properties": { "Value": true }
+			}
+		},
+		"StarterPlayer": {
+			"$className": "StarterPlayer",
+			"StarterPlayerScripts": {
+				"$className": "StarterPlayerScripts",
+				"ShopGui": { "$path": "src/client/ShopGui.client.lua" }
+			}
+		}
+	}
+}

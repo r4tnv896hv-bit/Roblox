@@ -1,0 +1,4173 @@
+<roblox version="4">
+  <Item class="Lighting" referent="0">
+    <Properties>
+      <string name="Name">Lighting</string>
+      <bool name="GlobalShadows">true</bool>
+      <token name="Technology">4</token>
+    </Properties>
+  </Item>
+  <Item class="ReplicatedStorage" referent="1">
+    <Properties>
+      <string name="Name">ReplicatedStorage</string>
+    </Properties>
+    <Item class="ModuleScript" referent="2">
+      <Properties>
+        <string name="Name">Locale</string>
+        <string name="Source"><![CDATA[-- 表示する文字の翻訳表（英語が基本。日本語の設定の人には日本語）
+local Locale = {}
+
+local STRINGS = {
+	en = {
+		money = "$%s",
+		status = "Orders waiting: %s · Visitors %s/s · Auto-ship %s/s · x%.1f",
+		ship = "SHIP ORDERS (%s)",
+		dashboard = "DASHBOARD",
+		tab_products = "Products",
+		tab_ads = "Ads",
+		tab_upgrades = "Upgrades",
+		tab_company = "Company",
+		close = "Close",
+		price_mode = "Pricing:",
+		mode_cheap = "Cheap",
+		mode_normal = "Normal",
+		mode_premium = "Premium",
+		product_row = "%s\nStock %s · Sells for $%s",
+		buy_stock = "Buy 10\n$%s",
+		unlock_product = "Unlock %s\n$%s",
+		all_unlocked = "All products unlocked!",
+		warehouse_info = "Warehouse: %s / %s",
+		ad_row = "%s\n+%s visitors/s for %ss",
+		ad_buy = "Launch\n$%s",
+		ad_running = "Running\n%ss",
+		upgrade_row = "%s  Lv.%s\n%s",
+		upgrade_buy = "Upgrade\n$%s",
+		upgrade_max = "MAX",
+		sell_company = "Sell your company\nReset everything, earn +%s%% forever\nNeed $%s",
+		franchise_info = "Companies sold: %s · Bonus +%s%%",
+		invite = "Invite friends! +20%% money each",
+		new_order = "NEW ORDER! %s  +$%s",
+		ranking_title = "TOP SELLERS",
+		tutorial = "1) Buy stock  2) Orders come in  3) SHIP to get paid!",
+
+		product_phoneCase = "Phone Case",
+		product_earbuds = "Wireless Earbuds",
+		product_ledLamp = "LED Galaxy Lamp",
+		product_smartWatch = "Smart Watch",
+		product_drone = "Camera Drone",
+		product_gamingChair = "Gaming Chair",
+		product_eScooter = "E-Scooter",
+
+		ad_social = "Social Media Ads",
+		ad_video = "Short Video Ads",
+		ad_influencer = "Influencer Deal",
+
+		upgrade_warehouse = "Bigger Warehouse",
+		upgrade_warehouse_desc = "+50 stock space",
+		upgrade_staff = "Hire Shipping Staff",
+		upgrade_staff_desc = "+0.5 auto-shipped orders/s",
+		upgrade_rating = "Store Rating",
+		upgrade_rating_desc = "+8% more customers buy",
+		upgrade_restock = "Auto-Restock",
+		upgrade_restock_desc = "Staff buys stock for you",
+
+		pass_doubleMoney = "2x Money",
+		pass_autoShipper = "Robot Shippers (+5/s)",
+
+		toast_shipped = "Shipped! +$%s",
+		toast_need_money = "You need $%s!",
+		toast_warehouse_full = "Warehouse full! Upgrade it.",
+		toast_ad_started = "%s launched! Customers incoming...",
+		announce_unlock = "%s started selling %s!",
+		announce_sold = "%s sold their company! (#%s)",
+		announce_friend = "Friend bonus! Money +%s%%",
+		announce_daily = "Daily bonus day %s! +$%s",
+		announce_offline = "Welcome back! Your staff earned +$%s (%s min)",
+		announce_pass = "%s got %s!",
+	},
+	ja = {
+		money = "$%s",
+		status = "発送待ち: %s件 ・ お客さん %s人/秒 ・ 自動発送 %s/秒 ・ x%.1f",
+		ship = "発送する（%s件）",
+		dashboard = "管理画面",
+		tab_products = "商品",
+		tab_ads = "広告",
+		tab_upgrades = "強化",
+		tab_company = "会社",
+		close = "閉じる",
+		price_mode = "値段:",
+		mode_cheap = "安く",
+		mode_normal = "ふつう",
+		mode_premium = "高く",
+		product_row = "%s\n在庫 %s ・ 売値 $%s",
+		buy_stock = "10個仕入れ\n$%s",
+		unlock_product = "%s を解放\n$%s",
+		all_unlocked = "全部の商品を解放した！",
+		warehouse_info = "倉庫: %s / %s",
+		ad_row = "%s\nお客さん +%s人/秒・%s秒間",
+		ad_buy = "出す\n$%s",
+		ad_running = "実施中\nあと%s秒",
+		upgrade_row = "%s  Lv.%s\n%s",
+		upgrade_buy = "強化\n$%s",
+		upgrade_max = "最大",
+		sell_company = "会社を売る\n全部リセット → ずっと +%s%%\n必要 $%s",
+		franchise_info = "売った会社: %s ・ ボーナス +%s%%",
+		invite = "友だちを招待！ 1人ごとに +20%%",
+		new_order = "新しい注文！ %s  +$%s",
+		ranking_title = "売上ランキング",
+		tutorial = "① 仕入れる ② 注文が来る ③ 発送してお金ゲット！",
+
+		product_phoneCase = "スマホケース",
+		product_earbuds = "ワイヤレスイヤホン",
+		product_ledLamp = "LEDギャラクシーランプ",
+		product_smartWatch = "スマートウォッチ",
+		product_drone = "カメラドローン",
+		product_gamingChair = "ゲーミングチェア",
+		product_eScooter = "電動キックボード",
+
+		ad_social = "SNS広告",
+		ad_video = "ショート動画広告",
+		ad_influencer = "インフルエンサー案件",
+
+		upgrade_warehouse = "倉庫を広げる",
+		upgrade_warehouse_desc = "在庫 +50個",
+		upgrade_staff = "発送スタッフを雇う",
+		upgrade_staff_desc = "自動発送 +0.5件/秒",
+		upgrade_rating = "お店の評価",
+		upgrade_rating_desc = "買ってくれる人 +8%",
+		upgrade_restock = "自動仕入れ",
+		upgrade_restock_desc = "スタッフが仕入れてくれる",
+
+		pass_doubleMoney = "お金2倍",
+		pass_autoShipper = "ロボット発送（+5/秒）",
+
+		toast_shipped = "発送完了！ +$%s",
+		toast_need_money = "$%s 必要です！",
+		toast_warehouse_full = "倉庫がいっぱい！ 強化しよう",
+		toast_ad_started = "%s を開始！ お客さんが来るよ",
+		announce_unlock = "%s が %s の販売を開始！",
+		announce_sold = "%s が会社を売った！（%s回目）",
+		announce_friend = "フレンドボーナス！ お金 +%s%%",
+		announce_daily = "ログインボーナス %s日目！ +$%s",
+		announce_offline = "おかえり！ スタッフが +$%s 稼いだよ（%s分）",
+		announce_pass = "%s が「%s」をゲット！",
+	},
+}
+
+function Locale.GetLanguage(player)
+	local localeId = string.lower(player.LocaleId or "")
+	if string.sub(localeId, 1, 2) == "ja" then
+		return "ja"
+	end
+	return "en"
+end
+
+function Locale.Get(language, key, ...)
+	local text = (STRINGS[language] and STRINGS[language][key]) or STRINGS.en[key] or key
+	if select("#", ...) > 0 then
+		local ok, result = pcall(string.format, text, ...)
+		if ok then
+			return result
+		end
+	end
+	return text
+end
+
+return Locale
+]]></string>
+      </Properties>
+    </Item>
+    <Item class="ModuleScript" referent="3">
+      <Properties>
+        <string name="Name">ShopConfig</string>
+        <string name="Source"><![CDATA[-- Online Shop Tycoon: 数値の設定（サーバーとクライアントの両方で使う）
+local ShopConfig = {}
+
+ShopConfig.STARTING_MONEY = 50
+
+-- 商品: cost は仕入れ値、price は標準の売値、unlock は解放に必要なお金
+ShopConfig.Products = {
+	{ id = "phoneCase", cost = 2, price = 6, unlock = 0, color = Color3.fromRGB(255, 120, 170) },
+	{ id = "earbuds", cost = 8, price = 22, unlock = 300, color = Color3.fromRGB(240, 240, 250) },
+	{ id = "ledLamp", cost = 20, price = 55, unlock = 2500, color = Color3.fromRGB(150, 110, 255) },
+	{ id = "smartWatch", cost = 60, price = 160, unlock = 15000, color = Color3.fromRGB(60, 60, 70) },
+	{ id = "drone", cost = 200, price = 520, unlock = 90000, color = Color3.fromRGB(90, 160, 255) },
+	{ id = "gamingChair", cost = 650, price = 1700, unlock = 500000, color = Color3.fromRGB(230, 60, 60) },
+	{ id = "eScooter", cost = 2200, price = 5800, unlock = 3000000, color = Color3.fromRGB(60, 200, 120) },
+}
+
+function ShopConfig.GetProduct(productId)
+	for index, product in ipairs(ShopConfig.Products) do
+		if product.id == productId then
+			return product, index
+		end
+	end
+	return nil, nil
+end
+
+-- 値付け: 安い・ふつう・高い（売値の倍率と売れやすさ）
+ShopConfig.PriceModes = {
+	cheap = { priceMultiplier = 0.8, conversion = 1.35 },
+	normal = { priceMultiplier = 1.0, conversion = 1.0 },
+	premium = { priceMultiplier = 1.35, conversion = 0.6 },
+}
+
+-- お客さん: 1 秒あたりの訪問者（基本 + 広告）
+ShopConfig.BASE_VISITORS = 0.25
+ShopConfig.BASE_CONVERSION = 0.6
+
+-- 広告キャンペーン: cost で duration 秒のあいだ visitors 人/秒 増える
+-- cost は「今いちばん高く解放した商品」に合わせて増える
+ShopConfig.Ads = {
+	{ id = "social", baseCost = 30, visitors = 0.6, duration = 60 },
+	{ id = "video", baseCost = 150, visitors = 2.0, duration = 90 },
+	{ id = "influencer", baseCost = 900, visitors = 6.0, duration = 120 },
+}
+
+function ShopConfig.AdCost(ad, unlockedCount)
+	return math.floor(ad.baseCost * (2.2 ^ math.max(0, unlockedCount - 1)))
+end
+
+-- アップグレード
+ShopConfig.Upgrades = {
+	warehouse = { baseCost = 100, growth = 1.8, maxLevel = 30 }, -- 在庫の上限 +50/レベル
+	staff = { baseCost = 250, growth = 1.9, maxLevel = 30 }, -- 1 秒に自動で発送する数 +0.5/レベル
+	rating = { baseCost = 400, growth = 2.0, maxLevel = 20 }, -- 売れやすさ +8%/レベル
+	restock = { baseCost = 1500, growth = 3.0, maxLevel = 1 }, -- 在庫が減ったら自動で仕入れ
+}
+ShopConfig.UpgradeOrder = { "warehouse", "staff", "rating", "restock" }
+
+function ShopConfig.UpgradeCost(upgradeId, level)
+	local upgrade = ShopConfig.Upgrades[upgradeId]
+	return math.floor(upgrade.baseCost * upgrade.growth ^ level)
+end
+
+function ShopConfig.StockCapacity(warehouseLevel)
+	return 30 + warehouseLevel * 50
+end
+
+function ShopConfig.ShipPerSecond(staffLevel)
+	return staffLevel * 0.5
+end
+
+function ShopConfig.RatingBonus(ratingLevel)
+	return 1 + ratingLevel * 0.08
+end
+
+-- 発送ボタン: 1 回押すと何件発送するか
+ShopConfig.MANUAL_SHIP = 1
+
+-- 会社を売る（転生）: もうけ +50%/回
+ShopConfig.SELL_COMPANY_BASE = 250000
+ShopConfig.SELL_COMPANY_GROWTH = 4
+ShopConfig.FRANCHISE_BONUS = 0.5
+
+function ShopConfig.SellCompanyCost(franchises)
+	return math.floor(ShopConfig.SELL_COMPANY_BASE * ShopConfig.SELL_COMPANY_GROWTH ^ franchises)
+end
+
+function ShopConfig.Multiplier(franchises, friendCount, hasDouble)
+	local multiplier = (1 + franchises * ShopConfig.FRANCHISE_BONUS) * (1 + math.min(friendCount, 5) * 0.2)
+	if hasDouble then
+		multiplier = multiplier * 2
+	end
+	return multiplier
+end
+
+-- ログインボーナス・オフライン報酬
+ShopConfig.DAILY_BASE = 200
+ShopConfig.OFFLINE_RATE = 0.4
+ShopConfig.OFFLINE_MAX_SECONDS = 8 * 60 * 60
+
+-- 課金（id は Roblox で作ったあとに入れる。0 のものは表示しない）
+ShopConfig.GamePasses = {
+	doubleMoney = { id = 0 },
+	autoShipper = { id = 0 }, -- 発送スタッフ +5/秒
+}
+ShopConfig.GamePassOrder = { "doubleMoney", "autoShipper" }
+ShopConfig.AUTO_SHIPPER_BONUS = 5
+
+return ShopConfig
+]]></string>
+      </Properties>
+    </Item>
+  </Item>
+  <Item class="ServerScriptService" referent="4">
+    <Properties>
+      <string name="Name">ServerScriptService</string>
+    </Properties>
+    <Item class="ModuleScript" referent="5">
+      <Properties>
+        <string name="Name">DataStore2</string>
+        <string name="Source"><![CDATA[--[[
+	DataStore2: A wrapper for data stores that caches and saves player's data.
+
+	DataStore2(dataStoreName, player) - Returns a DataStore2 DataStore
+
+	DataStore2 DataStore:
+	- Get([defaultValue])
+	- Set(value)
+	- Update(updateFunc)
+	- Increment(value, defaultValue)
+	- BeforeInitialGet(modifier)
+	- BeforeSave(modifier)
+	- Save()
+	- SaveAsync()
+	- OnUpdate(callback)
+	- BindToClose(callback)
+
+	local coinStore = DataStore2("Coins", player)
+
+	To give a player coins:
+
+	coinStore:Increment(50)
+
+	To get the current player's coins:
+
+	coinStore:Get()
+--]]
+
+local RunService = game:GetService("RunService")
+local ServerStorage = game:GetService("ServerStorage")
+
+local Constants = require(script.Constants)
+local IsPlayer = require(script.IsPlayer)
+local Promise = require(script.Promise)
+local SavingMethods = require(script.SavingMethods)
+local Settings = require(script.Settings)
+local TableUtil = require(script.TableUtil)
+local Verifier = require(script.Verifier)
+
+local SaveInStudioObject = ServerStorage:FindFirstChild("SaveInStudio")
+local SaveInStudio = SaveInStudioObject and SaveInStudioObject.Value
+
+local function clone(value)
+	if typeof(value) == "table" then
+		return TableUtil.clone(value)
+	else
+		return value
+	end
+end
+
+--DataStore object
+local DataStore = {}
+
+--Internal functions
+function DataStore:Debug(...)
+	if self.debug then
+		print("[DataStore2.Debug]", ...)
+	end
+end
+
+function DataStore:_GetRaw()
+	if self.getRawPromise then
+		return self.getRawPromise
+	end
+
+	self.getRawPromise = self.savingMethod:Get():andThen(function(value)
+		self.value = value
+		self:Debug("value received")
+		self.haveValue = true
+		self.getting = false
+	end):catch(function(reason)
+		self.getting = false
+		self.getRawPromise = nil
+		return Promise.reject(reason)
+	end)
+
+	return self.getRawPromise
+end
+
+function DataStore:_Update(dontCallOnUpdate)
+	if not dontCallOnUpdate then
+		for _, callback in ipairs(self.callbacks) do
+			callback(self.value, self)
+		end
+	end
+
+	self.haveValue = true
+	self.valueUpdated = true
+end
+
+--Public functions
+
+function DataStore:Get(defaultValue, dontAttemptGet)
+	if dontAttemptGet then
+		return self.value
+	end
+
+	local backupCount = 0
+
+	if not self.haveValue then
+		while not self.haveValue do
+			local success, error = self:_GetRaw():await()
+
+			if not success then
+				if self.backupRetries then
+					backupCount = backupCount + 1
+
+					if backupCount >= self.backupRetries then
+						self.backup = true
+						self.haveValue = true
+						self.value = self.backupValue
+						break
+					end
+				end
+
+				self:Debug("Get returned error:", error)
+			end
+		end
+
+		if self.value ~= nil then
+			for _, modifier in ipairs(self.beforeInitialGet) do
+				self.value = modifier(self.value, self)
+			end
+		end
+	end
+
+	local value
+
+	if self.value == nil and defaultValue ~= nil then --not using "not" because false is a possible value
+		value = defaultValue
+	else
+		value = self.value
+	end
+
+	value = clone(value)
+
+	self.value = value
+
+	return value
+end
+
+function DataStore:GetAsync(...)
+	return Promise.promisify(function(...)
+		return self:Get(...)
+	end)(...)
+end
+
+function DataStore:GetTable(default, ...)
+	local success, result = self:GetTableAsync(default, ...):await()
+	if not success then
+		error(result)
+	end
+	return result
+end
+
+function DataStore:GetTableAsync(default, ...)
+	assert(default ~= nil, "You must provide a default value.")
+
+	return self:GetAsync(default, ...):andThen(function(result)
+		local changed = false
+		assert(
+			typeof(result) == "table",
+			":GetTable/:GetTableAsync was used when the value in the data store isn't a table."
+		)
+
+		for defaultKey, defaultValue in pairs(default) do
+			if result[defaultKey] == nil then
+				result[defaultKey] = defaultValue
+				changed = true
+			end
+		end
+
+		if changed then
+			self:Set(result)
+		end
+
+		return result
+	end)
+end
+
+function DataStore:Set(value, _dontCallOnUpdate)
+	self.value = clone(value)
+	self:_Update(_dontCallOnUpdate)
+end
+
+function DataStore:Update(updateFunc)
+	self.value = updateFunc(self.value)
+	self:_Update()
+end
+
+function DataStore:Increment(value, defaultValue)
+	self:Set(self:Get(defaultValue) + value)
+end
+
+function DataStore:IncrementAsync(add, defaultValue)
+	return self:GetAsync(defaultValue):andThen(function(value)
+		return Promise.promisify(function()
+			self:Set(value + add)
+		end)()
+	end)
+end
+
+function DataStore:OnUpdate(callback)
+	table.insert(self.callbacks, callback)
+end
+
+function DataStore:BeforeInitialGet(modifier)
+	table.insert(self.beforeInitialGet, modifier)
+end
+
+function DataStore:BeforeSave(modifier)
+	self.beforeSave = modifier
+end
+
+function DataStore:AfterSave(callback)
+	table.insert(self.afterSave, callback)
+end
+
+--[[**
+	<description>
+	Adds a backup to the data store if :Get() fails a specified amount of times.
+	Will return the value provided (if the value is nil, then the default value of :Get() will be returned)
+	and mark the data store as a backup store, and attempts to :Save() will not truly save.
+	</description>
+
+	<parameter name = "retries">
+	Number of retries before the backup will be used.
+	</parameter>
+
+	<parameter name = "value">
+	The value to return to :Get() in the case of a failure.
+	You can keep this blank and the default value you provided with :Get() will be used instead.
+	</parameter>
+**--]]
+function DataStore:SetBackup(retries, value)
+	self.backupRetries = retries
+	self.backupValue = value
+end
+
+--[[**
+	<description>
+	Unmark the data store as a backup data store and tell :Get() and reset values to nil.
+	</description>
+**--]]
+function DataStore:ClearBackup()
+	self.backup = nil
+	self.haveValue = false
+	self.value = nil
+	self.getRawPromise = nil
+end
+
+--[[**
+	<returns>
+	Whether or not the data store is a backup data store and thus won't save during :Save() or call :AfterSave().
+	</returns>
+**--]]
+function DataStore:IsBackup()
+	return self.backup ~= nil --some people haven't learned if x then yet, and will do if x == false then.
+end
+
+--[[**
+	<description>
+	Saves the data to the data store. Called when a player leaves.
+	</description>
+**--]]
+function DataStore:Save()
+	local success, result = self:SaveAsync():await()
+
+	if success then
+		print("saved", self.Name)
+	else
+		error(result)
+	end
+end
+
+--[[**
+	<description>
+	Asynchronously saves the data to the data store.
+	</description>
+**--]]
+function DataStore:SaveAsync()
+	return Promise.async(function(resolve, reject)
+		if not self.valueUpdated then
+			warn(("Data store %s was not saved as it was not updated."):format(self.Name))
+			resolve(false)
+			return
+		end
+
+		if RunService:IsStudio() and not SaveInStudio then
+			warn(("Data store %s attempted to save in studio while SaveInStudio is false."):format(self.Name))
+			if not SaveInStudioObject then
+				warn("You can set the value of this by creating a BoolValue named SaveInStudio in ServerStorage.")
+			end
+			resolve(false)
+			return
+		end
+
+		if self.backup then
+			warn("This data store is a backup store, and thus will not be saved.")
+			resolve(false)
+			return
+		end
+
+		if self.value ~= nil then
+			local save = clone(self.value)
+
+			if self.beforeSave then
+				local success, result = pcall(self.beforeSave, save, self)
+
+				if success then
+					save = result
+				else
+					reject(result, Constants.SaveFailure.BeforeSaveError)
+					return
+				end
+			end
+
+			local problem = Verifier.testValidity(save)
+			if problem then
+				reject(problem, Constants.SaveFailure.InvalidData)
+				return
+			end
+
+			return self.savingMethod:Set(save):andThen(function()
+				resolve(true, save)
+			end)
+		end
+	end):andThen(function(saved, save)
+		if saved then
+			for _, afterSave in ipairs(self.afterSave) do
+				local success, err = pcall(afterSave, save, self)
+
+				if not success then
+					warn("Error on AfterSave:", err)
+				end
+			end
+
+			self.valueUpdated = false
+		end
+	end)
+end
+
+function DataStore:BindToClose(callback)
+	table.insert(self.bindToClose, callback)
+end
+
+function DataStore:GetKeyValue(key)
+	return (self.value or {})[key]
+end
+
+function DataStore:SetKeyValue(key, newValue)
+	if not self.value then
+		self.value = self:Get({})
+	end
+
+	self.value[key] = newValue
+end
+
+local CombinedDataStore = {}
+
+do
+	function CombinedDataStore:BeforeInitialGet(modifier)
+		self.combinedBeforeInitialGet = modifier
+	end
+
+	function CombinedDataStore:BeforeSave(modifier)
+		self.combinedBeforeSave = modifier
+	end
+
+	function CombinedDataStore:Get(defaultValue, dontAttemptGet)
+		local tableResult = self.combinedStore:Get({})
+		local tableValue = tableResult[self.combinedName]
+
+		if not dontAttemptGet then
+			if tableValue == nil then
+				tableValue = defaultValue
+			else
+				if self.combinedBeforeInitialGet and not self.combinedInitialGot then
+					tableValue = self.combinedBeforeInitialGet(tableValue)
+				end
+			end
+		end
+
+		self.combinedInitialGot = true
+		tableResult[self.combinedName] = clone(tableValue)
+		self.combinedStore:Set(tableResult, true)
+		return clone(tableValue)
+	end
+
+	function CombinedDataStore:Set(value, dontCallOnUpdate)
+		return self.combinedStore:GetAsync({}):andThen(function(tableResult)
+			tableResult[self.combinedName] = value
+			self.combinedStore:Set(tableResult, dontCallOnUpdate)
+			self:_Update(dontCallOnUpdate)
+		end)
+	end
+
+	function CombinedDataStore:Update(updateFunc)
+		self:Set(updateFunc(self:Get()))
+	end
+
+	function CombinedDataStore:Save()
+		self.combinedStore:Save()
+	end
+
+	function CombinedDataStore:OnUpdate(callback)
+		if not self.onUpdateCallbacks then
+			self.onUpdateCallbacks = {callback}
+		else
+			table.insert(self.onUpdateCallbacks, callback)
+		end
+	end
+
+	function CombinedDataStore:_Update(dontCallOnUpdate)
+		if not dontCallOnUpdate then
+			for _, callback in ipairs(self.onUpdateCallbacks or {}) do
+				callback(self:Get(), self)
+			end
+		end
+
+		self.combinedStore:_Update(true)
+	end
+
+	function CombinedDataStore:SetBackup(retries)
+		self.combinedStore:SetBackup(retries)
+	end
+end
+
+local DataStoreMetatable = {}
+
+DataStoreMetatable.__index = DataStore
+
+--Library
+local DataStoreCache = {}
+
+local DataStore2 = {}
+local combinedDataStoreInfo = {}
+
+--[[**
+	<description>
+	Run this once to combine all keys provided into one "main key".
+	Internally, this means that data will be stored in a table with the key mainKey.
+	This is used to get around the 2-DataStore2 reliability caveat.
+	</description>
+
+	<parameter name = "mainKey">
+	The key that will be used to house the table.
+	</parameter>
+
+	<parameter name = "...">
+	All the keys to combine under one table.
+	</parameter>
+**--]]
+function DataStore2.Combine(mainKey, ...)
+	for _, name in ipairs({...}) do
+		combinedDataStoreInfo[name] = mainKey
+	end
+end
+
+function DataStore2.ClearCache()
+	DataStoreCache = {}
+end
+
+function DataStore2.SaveAll(player)
+	if DataStoreCache[player] then
+		for _, dataStore in pairs(DataStoreCache[player]) do
+			if dataStore.combinedStore == nil then
+				dataStore:Save()
+			end
+		end
+	end
+end
+
+DataStore2.SaveAllAsync = Promise.promisify(DataStore2.SaveAll)
+
+function DataStore2.PatchGlobalSettings(patch)
+	for key, value in pairs(patch) do
+		assert(Settings[key] ~= nil, "No such key exists: " .. key)
+		-- TODO: Implement type checking with this when osyris' t is in
+		Settings[key] = value
+	end
+end
+
+function DataStore2.__call(_, dataStoreName, player)
+	assert(
+		typeof(dataStoreName) == "string" and IsPlayer.Check(player),
+		("DataStore2() API call expected {string dataStoreName, Player player}, got {%s, %s}")
+		:format(
+			typeof(dataStoreName),
+			typeof(player)
+		)
+	)
+
+	if DataStoreCache[player] and DataStoreCache[player][dataStoreName] then
+		return DataStoreCache[player][dataStoreName]
+	elseif combinedDataStoreInfo[dataStoreName] then
+		local dataStore = DataStore2(combinedDataStoreInfo[dataStoreName], player)
+
+		dataStore:BeforeSave(function(combinedData)
+			for key in pairs(combinedData) do
+				if combinedDataStoreInfo[key] then
+					local combinedStore = DataStore2(key, player)
+					local value = combinedStore:Get(nil, true)
+					if value ~= nil then
+						if combinedStore.combinedBeforeSave then
+							value = combinedStore.combinedBeforeSave(clone(value))
+						end
+						combinedData[key] = value
+					end
+				end
+			end
+
+			return combinedData
+		end)
+
+		local combinedStore = setmetatable({
+			combinedName = dataStoreName,
+			combinedStore = dataStore,
+		}, {
+			__index = function(_, key)
+				return CombinedDataStore[key] or dataStore[key]
+			end,
+		})
+
+		if not DataStoreCache[player] then
+			DataStoreCache[player] = {}
+		end
+
+		DataStoreCache[player][dataStoreName] = combinedStore
+		return combinedStore
+	end
+
+	local dataStore = {
+		Name = dataStoreName,
+		UserId = player.UserId,
+		callbacks = {},
+		beforeInitialGet = {},
+		afterSave = {},
+		bindToClose = {},
+	}
+
+	dataStore.savingMethod = SavingMethods[Settings.SavingMethod].new(dataStore)
+
+	setmetatable(dataStore, DataStoreMetatable)
+
+	local saveFinishedEvent, isSaveFinished = Instance.new("BindableEvent"), false
+	local bindToCloseEvent = Instance.new("BindableEvent")
+
+	local bindToCloseCallback = function()
+		if not isSaveFinished then
+			-- Defer to avoid a race between connecting and firing "saveFinishedEvent"
+			Promise.defer(function()
+				bindToCloseEvent:Fire() -- Resolves the Promise.race to save the data
+			end)
+
+			saveFinishedEvent.Event:Wait()
+		end
+
+		local value = dataStore:Get(nil, true)
+
+		for _, bindToClose in ipairs(dataStore.bindToClose) do
+			bindToClose(player, value)
+		end
+	end
+
+	local success, errorMessage = pcall(function()
+		game:BindToClose(function()
+			if bindToCloseCallback == nil then
+				return
+			end
+	
+			bindToCloseCallback()
+		end)
+	end)
+	if not success then
+		warn("DataStore2 could not BindToClose", errorMessage)
+	end
+
+	Promise.race({
+		Promise.fromEvent(bindToCloseEvent.Event),
+		Promise.fromEvent(player.AncestryChanged, function()
+			return not player:IsDescendantOf(game)
+		end),
+	}):andThen(function()
+		dataStore:SaveAsync():andThen(function()
+			print("player left, saved", dataStoreName)
+		end):catch(function(error)
+			-- TODO: Something more elegant
+			warn("error when player left!", error)
+		end):finally(function()
+			isSaveFinished = true
+			saveFinishedEvent:Fire()
+		end)
+
+		--Give a long delay for people who haven't figured out the cache :^(
+		return Promise.delay(40):andThen(function() 
+			DataStoreCache[player] = nil
+			bindToCloseCallback = nil
+		end)
+	end)
+
+	if not DataStoreCache[player] then
+		DataStoreCache[player] = {}
+	end
+
+	DataStoreCache[player][dataStoreName] = dataStore
+
+	return dataStore
+end
+
+DataStore2.Constants = Constants
+
+return setmetatable(DataStore2, DataStore2)
+]]></string>
+      </Properties>
+      <Item class="ModuleScript" referent="6">
+        <Properties>
+          <string name="Name">Constants</string>
+          <string name="Source"><![CDATA[local function symbol(text)
+	local symbol = newproxy(true)
+	getmetatable(symbol).__tostring = function()
+		return text
+	end
+	return symbol
+end
+
+return {
+	SaveFailure = {
+		BeforeSaveError = symbol("BeforeSaveError"),
+		DataStoreFailure = symbol("DataStoreFailure"),
+		InvalidData = symbol("InvalidData"),
+	}
+}
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="7">
+        <Properties>
+          <string name="Name">DataStoreServiceRetriever</string>
+          <string name="Source"><![CDATA[-- This function is monkey patched to return MockDataStoreService during tests
+local DataStoreService = game:GetService("DataStoreService")
+
+local DataStoreServiceRetriever = {}
+
+function DataStoreServiceRetriever.Get()
+	return DataStoreService
+end
+
+return DataStoreServiceRetriever
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="8">
+        <Properties>
+          <string name="Name">IsPlayer</string>
+          <string name="Source"><![CDATA[-- This function is monkey patched to return MockDataStoreService during tests
+local IsPlayer = {}
+
+function IsPlayer.Check(object)
+	return typeof(object) == "Instance" and object.ClassName == "Player"
+end
+
+return IsPlayer
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="9">
+        <Properties>
+          <string name="Name">Promise</string>
+          <string name="Source"><![CDATA[--[[
+	An implementation of Promises similar to Promise/A+.
+]]
+
+local ERROR_NON_PROMISE_IN_LIST = "Non-promise value passed into %s at index %s"
+local ERROR_NON_LIST = "Please pass a list of promises to %s"
+local ERROR_NON_FUNCTION = "Please pass a handler function to %s!"
+local MODE_KEY_METATABLE = {__mode = "k"}
+
+--[[
+	Creates an enum dictionary with some metamethods to prevent common mistakes.
+]]
+local function makeEnum(enumName, members)
+	local enum = {}
+
+	for _, memberName in ipairs(members) do
+		enum[memberName] = memberName
+	end
+
+	return setmetatable(enum, {
+		__index = function(_, k)
+			error(string.format("%s is not in %s!", k, enumName), 2)
+		end,
+		__newindex = function()
+			error(string.format("Creating new members in %s is not allowed!", enumName), 2)
+		end,
+	})
+end
+
+--[[
+	An object to represent runtime errors that occur during execution.
+	Promises that experience an error like this will be rejected with
+	an instance of this object.
+]]
+local Error do
+	Error = {
+		Kind = makeEnum("Promise.Error.Kind", {
+			"ExecutionError",
+			"AlreadyCancelled",
+			"NotResolvedInTime",
+			"TimedOut",
+		}),
+	}
+	Error.__index = Error
+
+	function Error.new(options, parent)
+		options = options or {}
+		return setmetatable({
+			error = tostring(options.error) or "[This error has no error text.]",
+			trace = options.trace,
+			context = options.context,
+			kind = options.kind,
+			parent = parent,
+			createdTick = os.clock(),
+			createdTrace = debug.traceback(),
+		}, Error)
+	end
+
+	function Error.is(anything)
+		if type(anything) == "table" then
+			local metatable = getmetatable(anything)
+
+			if type(metatable) == "table" then
+				return rawget(anything, "error") ~= nil and type(rawget(metatable, "extend")) == "function"
+			end
+		end
+
+		return false
+	end
+
+	function Error.isKind(anything, kind)
+		assert(kind ~= nil, "Argument #2 to Promise.Error.isKind must not be nil")
+
+		return Error.is(anything) and anything.kind == kind
+	end
+
+	function Error:extend(options)
+		options = options or {}
+
+		options.kind = options.kind or self.kind
+
+		return Error.new(options, self)
+	end
+
+	function Error:getErrorChain()
+		local runtimeErrors = { self }
+
+		while runtimeErrors[#runtimeErrors].parent do
+			table.insert(runtimeErrors, runtimeErrors[#runtimeErrors].parent)
+		end
+
+		return runtimeErrors
+	end
+
+	function Error:__tostring()
+		local errorStrings = {
+			string.format("-- Promise.Error(%s) --", self.kind or "?"),
+		}
+
+		for _, runtimeError in ipairs(self:getErrorChain()) do
+			table.insert(errorStrings, table.concat({
+				runtimeError.trace or runtimeError.error,
+				runtimeError.context,
+			}, "\n"))
+		end
+
+		return table.concat(errorStrings, "\n")
+	end
+end
+
+--[[
+	Packs a number of arguments into a table and returns its length.
+
+	Used to cajole varargs without dropping sparse values.
+]]
+local function pack(...)
+	return select("#", ...), { ... }
+end
+
+--[[
+	Returns first value (success), and packs all following values.
+]]
+local function packResult(success, ...)
+	return success, select("#", ...), { ... }
+end
+
+
+local function makeErrorHandler(traceback)
+	assert(traceback ~= nil)
+
+	return function(err)
+		-- If the error object is already a table, forward it directly.
+		-- Should we extend the error here and add our own trace?
+
+		if type(err) == "table" then
+			return err
+		end
+
+		return Error.new({
+			error = err,
+			kind = Error.Kind.ExecutionError,
+			trace = debug.traceback(tostring(err), 2),
+			context = "Promise created at:\n\n" .. traceback,
+		})
+	end
+end
+
+--[[
+	Calls a Promise executor with error handling.
+]]
+local function runExecutor(traceback, callback, ...)
+	return packResult(xpcall(callback, makeErrorHandler(traceback), ...))
+end
+
+--[[
+	Creates a function that invokes a callback with correct error handling and
+	resolution mechanisms.
+]]
+local function createAdvancer(traceback, callback, resolve, reject)
+	return function(...)
+		local ok, resultLength, result = runExecutor(traceback, callback, ...)
+
+		if ok then
+			resolve(unpack(result, 1, resultLength))
+		else
+			reject(result[1])
+		end
+	end
+end
+
+local function isEmpty(t)
+	return next(t) == nil
+end
+
+local Promise = {
+	Error = Error,
+	Status = makeEnum("Promise.Status", {"Started", "Resolved", "Rejected", "Cancelled"}),
+	_getTime = os.clock,
+	_timeEvent = game:GetService("RunService").Heartbeat,
+}
+Promise.prototype = {}
+Promise.__index = Promise.prototype
+
+--[[
+	Constructs a new Promise with the given initializing callback.
+
+	This is generally only called when directly wrapping a non-promise API into
+	a promise-based version.
+
+	The callback will receive 'resolve' and 'reject' methods, used to start
+	invoking the promise chain.
+
+	Second parameter, parent, is used internally for tracking the "parent" in a
+	promise chain. External code shouldn't need to worry about this.
+]]
+function Promise._new(traceback, callback, parent)
+	if parent ~= nil and not Promise.is(parent) then
+		error("Argument #2 to Promise.new must be a promise or nil", 2)
+	end
+
+	local self = {
+		-- Used to locate where a promise was created
+		_source = traceback,
+
+		_status = Promise.Status.Started,
+
+		-- A table containing a list of all results, whether success or failure.
+		-- Only valid if _status is set to something besides Started
+		_values = nil,
+
+		-- Lua doesn't like sparse arrays very much, so we explicitly store the
+		-- length of _values to handle middle nils.
+		_valuesLength = -1,
+
+		-- Tracks if this Promise has no error observers..
+		_unhandledRejection = true,
+
+		-- Queues representing functions we should invoke when we update!
+		_queuedResolve = {},
+		_queuedReject = {},
+		_queuedFinally = {},
+
+		-- The function to run when/if this promise is cancelled.
+		_cancellationHook = nil,
+
+		-- The "parent" of this promise in a promise chain. Required for
+		-- cancellation propagation upstream.
+		_parent = parent,
+
+		-- Consumers are Promises that have chained onto this one.
+		-- We track them for cancellation propagation downstream.
+		_consumers = setmetatable({}, MODE_KEY_METATABLE),
+	}
+
+	if parent and parent._status == Promise.Status.Started then
+		parent._consumers[self] = true
+	end
+
+	setmetatable(self, Promise)
+
+	local function resolve(...)
+		self:_resolve(...)
+	end
+
+	local function reject(...)
+		self:_reject(...)
+	end
+
+	local function onCancel(cancellationHook)
+		if cancellationHook then
+			if self._status == Promise.Status.Cancelled then
+				cancellationHook()
+			else
+				self._cancellationHook = cancellationHook
+			end
+		end
+
+		return self._status == Promise.Status.Cancelled
+	end
+
+	coroutine.wrap(function()
+		local ok, _, result = runExecutor(
+			self._source,
+			callback,
+			resolve,
+			reject,
+			onCancel
+		)
+
+		if not ok then
+			reject(result[1])
+		end
+	end)()
+
+	return self
+end
+
+function Promise.new(executor)
+	return Promise._new(debug.traceback(nil, 2), executor)
+end
+
+function Promise:__tostring()
+	return string.format("Promise(%s)", self:getStatus())
+end
+
+--[[
+	Promise.new, except pcall on a new thread is automatic.
+]]
+function Promise.defer(callback)
+	local traceback = debug.traceback(nil, 2)
+	local promise
+	promise = Promise._new(traceback, function(resolve, reject, onCancel)
+		local connection
+		connection = Promise._timeEvent:Connect(function()
+			connection:Disconnect()
+			local ok, _, result = runExecutor(traceback, callback, resolve, reject, onCancel)
+
+			if not ok then
+				reject(result[1])
+			end
+		end)
+	end)
+
+	return promise
+end
+
+-- Backwards compatibility
+Promise.async = Promise.defer
+
+--[[
+	Create a promise that represents the immediately resolved value.
+]]
+function Promise.resolve(...)
+	local length, values = pack(...)
+	return Promise._new(debug.traceback(nil, 2), function(resolve)
+		resolve(unpack(values, 1, length))
+	end)
+end
+
+--[[
+	Create a promise that represents the immediately rejected value.
+]]
+function Promise.reject(...)
+	local length, values = pack(...)
+	return Promise._new(debug.traceback(nil, 2), function(_, reject)
+		reject(unpack(values, 1, length))
+	end)
+end
+
+--[[
+	Runs a non-promise-returning function as a Promise with the
+  given arguments.
+]]
+function Promise._try(traceback, callback, ...)
+	local valuesLength, values = pack(...)
+
+	return Promise._new(traceback, function(resolve)
+		resolve(callback(unpack(values, 1, valuesLength)))
+	end)
+end
+
+--[[
+	Begins a Promise chain, turning synchronous errors into rejections.
+]]
+function Promise.try(...)
+	return Promise._try(debug.traceback(nil, 2), ...)
+end
+
+--[[
+	Returns a new promise that:
+		* is resolved when all input promises resolve
+		* is rejected if ANY input promises reject
+]]
+function Promise._all(traceback, promises, amount)
+	if type(promises) ~= "table" then
+		error(string.format(ERROR_NON_LIST, "Promise.all"), 3)
+	end
+
+	-- We need to check that each value is a promise here so that we can produce
+	-- a proper error rather than a rejected promise with our error.
+	for i, promise in pairs(promises) do
+		if not Promise.is(promise) then
+			error(string.format(ERROR_NON_PROMISE_IN_LIST, "Promise.all", tostring(i)), 3)
+		end
+	end
+
+	-- If there are no values then return an already resolved promise.
+	if #promises == 0 or amount == 0 then
+		return Promise.resolve({})
+	end
+
+	return Promise._new(traceback, function(resolve, reject, onCancel)
+		-- An array to contain our resolved values from the given promises.
+		local resolvedValues = {}
+		local newPromises = {}
+
+		-- Keep a count of resolved promises because just checking the resolved
+		-- values length wouldn't account for promises that resolve with nil.
+		local resolvedCount = 0
+		local rejectedCount = 0
+		local done = false
+
+		local function cancel()
+			for _, promise in ipairs(newPromises) do
+				promise:cancel()
+			end
+		end
+
+		-- Called when a single value is resolved and resolves if all are done.
+		local function resolveOne(i, ...)
+			if done then
+				return
+			end
+
+			resolvedCount = resolvedCount + 1
+
+			if amount == nil then
+				resolvedValues[i] = ...
+			else
+				resolvedValues[resolvedCount] = ...
+			end
+
+			if resolvedCount >= (amount or #promises) then
+				done = true
+				resolve(resolvedValues)
+				cancel()
+			end
+		end
+
+		onCancel(cancel)
+
+		-- We can assume the values inside `promises` are all promises since we
+		-- checked above.
+		for i, promise in ipairs(promises) do
+			newPromises[i] = promise:andThen(
+				function(...)
+					resolveOne(i, ...)
+				end,
+				function(...)
+					rejectedCount = rejectedCount + 1
+
+					if amount == nil or #promises - rejectedCount < amount then
+						cancel()
+						done = true
+
+						reject(...)
+					end
+				end
+			)
+		end
+
+		if done then
+			cancel()
+		end
+	end)
+end
+
+function Promise.all(promises)
+	return Promise._all(debug.traceback(nil, 2), promises)
+end
+
+function Promise.some(promises, amount)
+	assert(type(amount) == "number", "Bad argument #2 to Promise.some: must be a number")
+
+	return Promise._all(debug.traceback(nil, 2), promises, amount)
+end
+
+function Promise.any(promises)
+	return Promise._all(debug.traceback(nil, 2), promises, 1):andThen(function(values)
+		return values[1]
+	end)
+end
+
+function Promise.allSettled(promises)
+	if type(promises) ~= "table" then
+		error(string.format(ERROR_NON_LIST, "Promise.allSettled"), 2)
+	end
+
+	-- We need to check that each value is a promise here so that we can produce
+	-- a proper error rather than a rejected promise with our error.
+	for i, promise in pairs(promises) do
+		if not Promise.is(promise) then
+			error(string.format(ERROR_NON_PROMISE_IN_LIST, "Promise.allSettled", tostring(i)), 2)
+		end
+	end
+
+	-- If there are no values then return an already resolved promise.
+	if #promises == 0 then
+		return Promise.resolve({})
+	end
+
+	return Promise._new(debug.traceback(nil, 2), function(resolve, _, onCancel)
+		-- An array to contain our resolved values from the given promises.
+		local fates = {}
+		local newPromises = {}
+
+		-- Keep a count of resolved promises because just checking the resolved
+		-- values length wouldn't account for promises that resolve with nil.
+		local finishedCount = 0
+
+		-- Called when a single value is resolved and resolves if all are done.
+		local function resolveOne(i, ...)
+			finishedCount = finishedCount + 1
+
+			fates[i] = ...
+
+			if finishedCount >= #promises then
+				resolve(fates)
+			end
+		end
+
+		onCancel(function()
+			for _, promise in ipairs(newPromises) do
+				promise:cancel()
+			end
+		end)
+
+		-- We can assume the values inside `promises` are all promises since we
+		-- checked above.
+		for i, promise in ipairs(promises) do
+			newPromises[i] = promise:finally(
+				function(...)
+					resolveOne(i, ...)
+				end
+			)
+		end
+	end)
+end
+
+--[[
+	Races a set of Promises and returns the first one that resolves,
+	cancelling the others.
+]]
+function Promise.race(promises)
+	assert(type(promises) == "table", string.format(ERROR_NON_LIST, "Promise.race"))
+
+	for i, promise in pairs(promises) do
+		assert(Promise.is(promise), string.format(ERROR_NON_PROMISE_IN_LIST, "Promise.race", tostring(i)))
+	end
+
+	return Promise._new(debug.traceback(nil, 2), function(resolve, reject, onCancel)
+		local newPromises = {}
+		local finished = false
+
+		local function cancel()
+			for _, promise in ipairs(newPromises) do
+				promise:cancel()
+			end
+		end
+
+		local function finalize(callback)
+			return function (...)
+				cancel()
+				finished = true
+				return callback(...)
+			end
+		end
+
+		if onCancel(finalize(reject)) then
+			return
+		end
+
+		for i, promise in ipairs(promises) do
+			newPromises[i] = promise:andThen(finalize(resolve), finalize(reject))
+		end
+
+		if finished then
+			cancel()
+		end
+	end)
+end
+
+--[[
+	Iterates serially over the given an array of values, calling the predicate callback on each before continuing.
+	If the predicate returns a Promise, we wait for that Promise to resolve before continuing to the next item
+	in the array. If the Promise the predicate returns rejects, the Promise from Promise.each is also rejected with
+	the same value.
+
+	Returns a Promise containing an array of the return values from the predicate for each item in the original list.
+]]
+function Promise.each(list, predicate)
+	assert(type(list) == "table", string.format(ERROR_NON_LIST, "Promise.each"))
+	assert(type(predicate) == "function", string.format(ERROR_NON_FUNCTION, "Promise.each"))
+
+	return Promise._new(debug.traceback(nil, 2), function(resolve, reject, onCancel)
+		local results = {}
+		local promisesToCancel = {}
+
+		local cancelled = false
+
+		local function cancel()
+			for _, promiseToCancel in ipairs(promisesToCancel) do
+				promiseToCancel:cancel()
+			end
+		end
+
+		onCancel(function()
+			cancelled = true
+
+			cancel()
+		end)
+
+		-- We need to preprocess the list of values and look for Promises.
+		-- If we find some, we must register our andThen calls now, so that those Promises have a consumer
+		-- from us registered. If we don't do this, those Promises might get cancelled by something else
+		-- before we get to them in the series because it's not possible to tell that we plan to use it
+		-- unless we indicate it here.
+
+		local preprocessedList = {}
+
+		for index, value in ipairs(list) do
+			if Promise.is(value) then
+				if value:getStatus() == Promise.Status.Cancelled then
+					cancel()
+					return reject(Error.new({
+						error = "Promise is cancelled",
+						kind = Error.Kind.AlreadyCancelled,
+						context = string.format(
+							"The Promise that was part of the array at index %d passed into Promise.each was already cancelled when Promise.each began.\n\nThat Promise was created at:\n\n%s",
+							index,
+							value._source
+						),
+					}))
+				elseif value:getStatus() == Promise.Status.Rejected then
+					cancel()
+					return reject(select(2, value:await()))
+				end
+
+				-- Chain a new Promise from this one so we only cancel ours
+				local ourPromise = value:andThen(function(...)
+					return ...
+				end)
+
+				table.insert(promisesToCancel, ourPromise)
+				preprocessedList[index] = ourPromise
+			else
+				preprocessedList[index] = value
+			end
+		end
+
+		for index, value in ipairs(preprocessedList) do
+			if Promise.is(value) then
+				local success
+				success, value = value:await()
+
+				if not success then
+					cancel()
+					return reject(value)
+				end
+			end
+
+			if cancelled then
+				return
+			end
+
+			local predicatePromise = Promise.resolve(predicate(value, index))
+
+			table.insert(promisesToCancel, predicatePromise)
+
+			local success, result = predicatePromise:await()
+
+			if not success then
+				cancel()
+				return reject(result)
+			end
+
+			results[index] = result
+		end
+
+		resolve(results)
+	end)
+end
+
+--[[
+	Is the given object a Promise instance?
+]]
+function Promise.is(object)
+	if type(object) ~= "table" then
+		return false
+	end
+
+	local objectMetatable = getmetatable(object)
+
+	if objectMetatable == Promise then
+		-- The Promise came from this library.
+		return true
+	elseif objectMetatable == nil then
+		-- No metatable, but we should still chain onto tables with andThen methods
+		return type(object.andThen) == "function"
+	elseif
+		type(objectMetatable) == "table"
+		and type(rawget(objectMetatable, "__index")) == "table"
+		and type(rawget(rawget(objectMetatable, "__index"), "andThen")) == "function"
+	then
+		-- Maybe this came from a different or older Promise library.
+		return true
+	end
+
+	return false
+end
+
+--[[
+	Converts a yielding function into a Promise-returning one.
+]]
+function Promise.promisify(callback)
+	return function(...)
+		return Promise._try(debug.traceback(nil, 2), callback, ...)
+	end
+end
+
+--[[
+	Creates a Promise that resolves after given number of seconds.
+]]
+do
+	-- uses a sorted doubly linked list (queue) to achieve O(1) remove operations and O(n) for insert
+
+	-- the initial node in the linked list
+	local first
+	local connection
+
+	function Promise.delay(seconds)
+		assert(type(seconds) == "number", "Bad argument #1 to Promise.delay, must be a number.")
+		-- If seconds is -INF, INF, NaN, or less than 1 / 60, assume seconds is 1 / 60.
+		-- This mirrors the behavior of wait()
+		if not (seconds >= 1 / 60) or seconds == math.huge then
+			seconds = 1 / 60
+		end
+
+		return Promise._new(debug.traceback(nil, 2), function(resolve, _, onCancel)
+			local startTime = Promise._getTime()
+			local endTime = startTime + seconds
+
+			local node = {
+				resolve = resolve,
+				startTime = startTime,
+				endTime = endTime,
+			}
+
+			if connection == nil then -- first is nil when connection is nil
+				first = node
+				connection = Promise._timeEvent:Connect(function()
+					local threadStart = Promise._getTime()
+
+					while first ~= nil and first.endTime < threadStart do
+						local current = first
+						first = current.next
+
+						if first == nil then
+							connection:Disconnect()
+							connection = nil
+						else
+							first.previous = nil
+						end
+
+						current.resolve(Promise._getTime() - current.startTime)
+					end
+				end)
+			else -- first is non-nil
+				if first.endTime < endTime then -- if `node` should be placed after `first`
+					-- we will insert `node` between `current` and `next`
+					-- (i.e. after `current` if `next` is nil)
+					local current = first
+					local next = current.next
+
+					while next ~= nil and next.endTime < endTime do
+						current = next
+						next = current.next
+					end
+
+					-- `current` must be non-nil, but `next` could be `nil` (i.e. last item in list)
+					current.next = node
+					node.previous = current
+
+					if next ~= nil then
+						node.next = next
+						next.previous = node
+					end
+				else
+					-- set `node` to `first`
+					node.next = first
+					first.previous = node
+					first = node
+				end
+			end
+
+			onCancel(function()
+				-- remove node from queue
+				local next = node.next
+
+				if first == node then
+					if next == nil then -- if `node` is the first and last
+						connection:Disconnect()
+						connection = nil
+					else -- if `node` is `first` and not the last
+						next.previous = nil
+					end
+					first = next
+				else
+					local previous = node.previous
+					-- since `node` is not `first`, then we know `previous` is non-nil
+					previous.next = next
+
+					if next ~= nil then
+						next.previous = previous
+					end
+				end
+			end)
+		end)
+	end
+end
+
+--[[
+	Rejects the promise after `seconds` seconds.
+]]
+function Promise.prototype:timeout(seconds, rejectionValue)
+	local traceback = debug.traceback(nil, 2)
+
+	return Promise.race({
+		Promise.delay(seconds):andThen(function()
+			return Promise.reject(rejectionValue == nil and Error.new({
+				kind = Error.Kind.TimedOut,
+				error = "Timed out",
+				context = string.format(
+					"Timeout of %d seconds exceeded.\n:timeout() called at:\n\n%s",
+					seconds,
+					traceback
+				),
+			}) or rejectionValue)
+		end),
+		self,
+	})
+end
+
+function Promise.prototype:getStatus()
+	return self._status
+end
+
+--[[
+	Creates a new promise that receives the result of this promise.
+
+	The given callbacks are invoked depending on that result.
+]]
+function Promise.prototype:_andThen(traceback, successHandler, failureHandler)
+	self._unhandledRejection = false
+
+	-- Create a new promise to follow this part of the chain
+	return Promise._new(traceback, function(resolve, reject)
+		-- Our default callbacks just pass values onto the next promise.
+		-- This lets success and failure cascade correctly!
+
+		local successCallback = resolve
+		if successHandler then
+			successCallback = createAdvancer(
+				traceback,
+				successHandler,
+				resolve,
+				reject
+			)
+		end
+
+		local failureCallback = reject
+		if failureHandler then
+			failureCallback = createAdvancer(
+				traceback,
+				failureHandler,
+				resolve,
+				reject
+			)
+		end
+
+		if self._status == Promise.Status.Started then
+			-- If we haven't resolved yet, put ourselves into the queue
+			table.insert(self._queuedResolve, successCallback)
+			table.insert(self._queuedReject, failureCallback)
+		elseif self._status == Promise.Status.Resolved then
+			-- This promise has already resolved! Trigger success immediately.
+			successCallback(unpack(self._values, 1, self._valuesLength))
+		elseif self._status == Promise.Status.Rejected then
+			-- This promise died a terrible death! Trigger failure immediately.
+			failureCallback(unpack(self._values, 1, self._valuesLength))
+		elseif self._status == Promise.Status.Cancelled then
+			-- We don't want to call the success handler or the failure handler,
+			-- we just reject this promise outright.
+			reject(Error.new({
+				error = "Promise is cancelled",
+				kind = Error.Kind.AlreadyCancelled,
+				context = "Promise created at\n\n" .. traceback,
+			}))
+		end
+	end, self)
+end
+
+function Promise.prototype:andThen(successHandler, failureHandler)
+	assert(
+		successHandler == nil or type(successHandler) == "function",
+		string.format(ERROR_NON_FUNCTION, "Promise:andThen")
+	)
+	assert(
+		failureHandler == nil or type(failureHandler) == "function",
+		string.format(ERROR_NON_FUNCTION, "Promise:andThen")
+	)
+
+	return self:_andThen(debug.traceback(nil, 2), successHandler, failureHandler)
+end
+
+--[[
+	Used to catch any errors that may have occurred in the promise.
+]]
+function Promise.prototype:catch(failureCallback)
+	assert(
+		failureCallback == nil or type(failureCallback) == "function",
+		string.format(ERROR_NON_FUNCTION, "Promise:catch")
+	)
+	return self:_andThen(debug.traceback(nil, 2), nil, failureCallback)
+end
+
+--[[
+	Like andThen, but the value passed into the handler is also the
+	value returned from the handler.
+]]
+function Promise.prototype:tap(tapCallback)
+	assert(type(tapCallback) == "function", string.format(ERROR_NON_FUNCTION, "Promise:tap"))
+	return self:_andThen(debug.traceback(nil, 2), function(...)
+		local callbackReturn = tapCallback(...)
+
+		if Promise.is(callbackReturn) then
+			local length, values = pack(...)
+			return callbackReturn:andThen(function()
+				return unpack(values, 1, length)
+			end)
+		end
+
+		return ...
+	end)
+end
+
+--[[
+	Calls a callback on `andThen` with specific arguments.
+]]
+function Promise.prototype:andThenCall(callback, ...)
+	assert(type(callback) == "function", string.format(ERROR_NON_FUNCTION, "Promise:andThenCall"))
+	local length, values = pack(...)
+	return self:_andThen(debug.traceback(nil, 2), function()
+		return callback(unpack(values, 1, length))
+	end)
+end
+
+--[[
+	Shorthand for an andThen handler that returns the given value.
+]]
+function Promise.prototype:andThenReturn(...)
+	local length, values = pack(...)
+	return self:_andThen(debug.traceback(nil, 2), function()
+		return unpack(values, 1, length)
+	end)
+end
+
+--[[
+	Cancels the promise, disallowing it from rejecting or resolving, and calls
+	the cancellation hook if provided.
+]]
+function Promise.prototype:cancel()
+	if self._status ~= Promise.Status.Started then
+		return
+	end
+
+	self._status = Promise.Status.Cancelled
+
+	if self._cancellationHook then
+		self._cancellationHook()
+	end
+
+	if self._parent then
+		self._parent:_consumerCancelled(self)
+	end
+
+	for child in pairs(self._consumers) do
+		child:cancel()
+	end
+
+	self:_finalize()
+end
+
+--[[
+	Used to decrease the number of consumers by 1, and if there are no more,
+	cancel this promise.
+]]
+function Promise.prototype:_consumerCancelled(consumer)
+	if self._status ~= Promise.Status.Started then
+		return
+	end
+
+	self._consumers[consumer] = nil
+
+	if next(self._consumers) == nil then
+		self:cancel()
+	end
+end
+
+--[[
+	Used to set a handler for when the promise resolves, rejects, or is
+	cancelled. Returns a new promise chained from this promise.
+]]
+function Promise.prototype:_finally(traceback, finallyHandler, onlyOk)
+	if not onlyOk then
+		self._unhandledRejection = false
+	end
+
+	-- Return a promise chained off of this promise
+	return Promise._new(traceback, function(resolve, reject)
+		local finallyCallback = resolve
+		if finallyHandler then
+			finallyCallback = createAdvancer(
+				traceback,
+				finallyHandler,
+				resolve,
+				reject
+			)
+		end
+
+		if onlyOk then
+			local callback = finallyCallback
+			finallyCallback = function(...)
+				if self._status == Promise.Status.Rejected then
+					return resolve(self)
+				end
+
+				return callback(...)
+			end
+		end
+
+		if self._status == Promise.Status.Started then
+			-- The promise is not settled, so queue this.
+			table.insert(self._queuedFinally, finallyCallback)
+		else
+			-- The promise already settled or was cancelled, run the callback now.
+			finallyCallback(self._status)
+		end
+	end, self)
+end
+
+function Promise.prototype:finally(finallyHandler)
+	assert(
+		finallyHandler == nil or type(finallyHandler) == "function",
+		string.format(ERROR_NON_FUNCTION, "Promise:finally")
+	)
+	return self:_finally(debug.traceback(nil, 2), finallyHandler)
+end
+
+--[[
+	Calls a callback on `finally` with specific arguments.
+]]
+function Promise.prototype:finallyCall(callback, ...)
+	assert(type(callback) == "function", string.format(ERROR_NON_FUNCTION, "Promise:finallyCall"))
+	local length, values = pack(...)
+	return self:_finally(debug.traceback(nil, 2), function()
+		return callback(unpack(values, 1, length))
+	end)
+end
+
+--[[
+	Shorthand for a finally handler that returns the given value.
+]]
+function Promise.prototype:finallyReturn(...)
+	local length, values = pack(...)
+	return self:_finally(debug.traceback(nil, 2), function()
+		return unpack(values, 1, length)
+	end)
+end
+
+--[[
+	Similar to finally, except rejections are propagated through it.
+]]
+function Promise.prototype:done(finallyHandler)
+	assert(
+		finallyHandler == nil or type(finallyHandler) == "function",
+		string.format(ERROR_NON_FUNCTION, "Promise:done")
+	)
+	return self:_finally(debug.traceback(nil, 2), finallyHandler, true)
+end
+
+--[[
+	Calls a callback on `done` with specific arguments.
+]]
+function Promise.prototype:doneCall(callback, ...)
+	assert(type(callback) == "function", string.format(ERROR_NON_FUNCTION, "Promise:doneCall"))
+	local length, values = pack(...)
+	return self:_finally(debug.traceback(nil, 2), function()
+		return callback(unpack(values, 1, length))
+	end, true)
+end
+
+--[[
+	Shorthand for a done handler that returns the given value.
+]]
+function Promise.prototype:doneReturn(...)
+	local length, values = pack(...)
+	return self:_finally(debug.traceback(nil, 2), function()
+		return unpack(values, 1, length)
+	end, true)
+end
+
+--[[
+	Yield until the promise is completed.
+
+	This matches the execution model of normal Roblox functions.
+]]
+function Promise.prototype:awaitStatus()
+	self._unhandledRejection = false
+
+	if self._status == Promise.Status.Started then
+		local bindable = Instance.new("BindableEvent")
+
+		self:finally(function()
+			bindable:Fire()
+		end)
+
+		bindable.Event:Wait()
+		bindable:Destroy()
+	end
+
+	if self._status == Promise.Status.Resolved then
+		return self._status, unpack(self._values, 1, self._valuesLength)
+	elseif self._status == Promise.Status.Rejected then
+		return self._status, unpack(self._values, 1, self._valuesLength)
+	end
+
+	return self._status
+end
+
+local function awaitHelper(status, ...)
+	return status == Promise.Status.Resolved, ...
+end
+
+--[[
+	Calls awaitStatus internally, returns (isResolved, values...)
+]]
+function Promise.prototype:await()
+	return awaitHelper(self:awaitStatus())
+end
+
+local function expectHelper(status, ...)
+	if status ~= Promise.Status.Resolved then
+		error((...) == nil and "Expected Promise rejected with no value." or (...), 3)
+	end
+
+	return ...
+end
+
+--[[
+	Calls await and only returns if the Promise resolves.
+	Throws if the Promise rejects or gets cancelled.
+]]
+function Promise.prototype:expect()
+	return expectHelper(self:awaitStatus())
+end
+
+-- Backwards compatibility
+Promise.prototype.awaitValue = Promise.prototype.expect
+
+--[[
+	Intended for use in tests.
+
+	Similar to await(), but instead of yielding if the promise is unresolved,
+	_unwrap will throw. This indicates an assumption that a promise has
+	resolved.
+]]
+function Promise.prototype:_unwrap()
+	if self._status == Promise.Status.Started then
+		error("Promise has not resolved or rejected.", 2)
+	end
+
+	local success = self._status == Promise.Status.Resolved
+
+	return success, unpack(self._values, 1, self._valuesLength)
+end
+
+function Promise.prototype:_resolve(...)
+	if self._status ~= Promise.Status.Started then
+		if Promise.is((...)) then
+			(...):_consumerCancelled(self)
+		end
+		return
+	end
+
+	-- If the resolved value was a Promise, we chain onto it!
+	if Promise.is((...)) then
+		-- Without this warning, arguments sometimes mysteriously disappear
+		if select("#", ...) > 1 then
+			local message = string.format(
+				"When returning a Promise from andThen, extra arguments are " ..
+				"discarded! See:\n\n%s",
+				self._source
+			)
+			warn(message)
+		end
+
+		local chainedPromise = ...
+
+		local promise = chainedPromise:andThen(
+			function(...)
+				self:_resolve(...)
+			end,
+			function(...)
+				local maybeRuntimeError = chainedPromise._values[1]
+
+				-- Backwards compatibility < v2
+				if chainedPromise._error then
+					maybeRuntimeError = Error.new({
+						error = chainedPromise._error,
+						kind = Error.Kind.ExecutionError,
+						context = "[No stack trace available as this Promise originated from an older version of the Promise library (< v2)]",
+					})
+				end
+
+				if Error.isKind(maybeRuntimeError, Error.Kind.ExecutionError) then
+					return self:_reject(maybeRuntimeError:extend({
+						error = "This Promise was chained to a Promise that errored.",
+						trace = "",
+						context = string.format(
+							"The Promise at:\n\n%s\n...Rejected because it was chained to the following Promise, which encountered an error:\n",
+							self._source
+						),
+					}))
+				end
+
+				self:_reject(...)
+			end
+		)
+
+		if promise._status == Promise.Status.Cancelled then
+			self:cancel()
+		elseif promise._status == Promise.Status.Started then
+			-- Adopt ourselves into promise for cancellation propagation.
+			self._parent = promise
+			promise._consumers[self] = true
+		end
+
+		return
+	end
+
+	self._status = Promise.Status.Resolved
+	self._valuesLength, self._values = pack(...)
+
+	-- We assume that these callbacks will not throw errors.
+	for _, callback in ipairs(self._queuedResolve) do
+		coroutine.wrap(callback)(...)
+	end
+
+	self:_finalize()
+end
+
+function Promise.prototype:_reject(...)
+	if self._status ~= Promise.Status.Started then
+		return
+	end
+
+	self._status = Promise.Status.Rejected
+	self._valuesLength, self._values = pack(...)
+
+	-- If there are any rejection handlers, call those!
+	if not isEmpty(self._queuedReject) then
+		-- We assume that these callbacks will not throw errors.
+		for _, callback in ipairs(self._queuedReject) do
+			coroutine.wrap(callback)(...)
+		end
+	else
+		-- At this point, no one was able to observe the error.
+		-- An error handler might still be attached if the error occurred
+		-- synchronously. We'll wait one tick, and if there are still no
+		-- observers, then we should put a message in the console.
+
+		local err = tostring((...))
+
+		coroutine.wrap(function()
+			Promise._timeEvent:Wait()
+
+			-- Someone observed the error, hooray!
+			if not self._unhandledRejection then
+				return
+			end
+
+			-- Build a reasonable message
+			local message = string.format(
+				"Unhandled Promise rejection:\n\n%s\n\n%s",
+				err,
+				self._source
+			)
+
+			if Promise.TEST then
+				-- Don't spam output when we're running tests.
+				return
+			end
+
+			warn(message)
+		end)()
+	end
+
+	self:_finalize()
+end
+
+--[[
+	Calls any :finally handlers. We need this to be a separate method and
+	queue because we must call all of the finally callbacks upon a success,
+	failure, *and* cancellation.
+]]
+function Promise.prototype:_finalize()
+	for _, callback in ipairs(self._queuedFinally) do
+		-- Purposefully not passing values to callbacks here, as it could be the
+		-- resolved values, or rejected errors. If the developer needs the values,
+		-- they should use :andThen or :catch explicitly.
+		coroutine.wrap(callback)(self._status)
+	end
+
+	self._queuedFinally = nil
+	self._queuedReject = nil
+	self._queuedResolve = nil
+
+	-- Clear references to other Promises to allow gc
+	if not Promise.TEST then
+		self._parent = nil
+		self._consumers = nil
+	end
+end
+
+--[[
+	Chains a Promise from this one that is resolved if this Promise is
+	resolved, and rejected if it is not resolved.
+]]
+function Promise.prototype:now(rejectionValue)
+	local traceback = debug.traceback(nil, 2)
+	if self:getStatus() == Promise.Status.Resolved then
+		return self:_andThen(traceback, function(...)
+			return ...
+		end)
+	else
+		return Promise.reject(rejectionValue == nil and Error.new({
+			kind = Error.Kind.NotResolvedInTime,
+			error = "This Promise was not resolved in time for :now()",
+			context = ":now() was called at:\n\n" .. traceback,
+		}) or rejectionValue)
+	end
+end
+
+--[[
+	Retries a Promise-returning callback N times until it succeeds.
+]]
+function Promise.retry(callback, times, ...)
+	assert(type(callback) == "function", "Parameter #1 to Promise.retry must be a function")
+	assert(type(times) == "number", "Parameter #2 to Promise.retry must be a number")
+
+	local args, length = {...}, select("#", ...)
+
+	return Promise.resolve(callback(...)):catch(function(...)
+		if times > 0 then
+			return Promise.retry(callback, times - 1, unpack(args, 1, length))
+		else
+			return Promise.reject(...)
+		end
+	end)
+end
+
+--[[
+	Converts an event into a Promise with an optional predicate
+]]
+function Promise.fromEvent(event, predicate)
+	predicate = predicate or function()
+		return true
+	end
+
+	return Promise._new(debug.traceback(nil, 2), function(resolve, reject, onCancel)
+		local connection
+		local shouldDisconnect = false
+
+		local function disconnect()
+			connection:Disconnect()
+			connection = nil
+		end
+
+		-- We use shouldDisconnect because if the callback given to Connect is called before
+		-- Connect returns, connection will still be nil. This happens with events that queue up
+		-- events when there's nothing connected, such as RemoteEvents
+
+		connection = event:Connect(function(...)
+			local callbackValue = predicate(...)
+
+			if callbackValue == true then
+				resolve(...)
+
+				if connection then
+					disconnect()
+				else
+					shouldDisconnect = true
+				end
+			elseif type(callbackValue) ~= "boolean" then
+				error("Promise.fromEvent predicate should always return a boolean")
+			end
+		end)
+
+		if shouldDisconnect and connection then
+			return disconnect()
+		end
+
+		onCancel(function()
+			disconnect()
+		end)
+	end)
+end
+
+return Promise
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="10">
+        <Properties>
+          <string name="Name">SavingMethods</string>
+          <string name="Source"><![CDATA[return {
+	Standard = require(script.Standard),
+	OrderedBackups = require(script.OrderedBackups),
+}
+]]></string>
+        </Properties>
+        <Item class="ModuleScript" referent="11">
+          <Properties>
+            <string name="Name">OrderedBackups</string>
+            <string name="Source"><![CDATA[--[[
+	berezaa's method of saving data (from the dev forum):
+
+	What I do and this might seem a little over-the-top but it's fine as long as you're not using datastores
+	excessively elsewhere is have a datastore and an ordereddatastore for each player. When you perform a save,
+	add a key (can be anything) with the value of os.time() to the ordereddatastore and save a key with the os.time()
+	and the value of the player's data to the regular datastore. Then, when loading data, get the highest number from
+	the ordered data store (most recent save) and load the data with that as a key.
+
+	Ever since I implemented this, pretty much no one has ever lost data. There's no caches to worry about either
+	because you're never overriding any keys. Plus, it has the added benefit of allowing you to restore lost data,
+	since every save doubles as a backup which can be easily found with the ordereddatastore
+
+	edit: while there's no official comment on this, many developers including myself have noticed really bad cache
+	times and issues with using the same datastore keys to save data across multiple places in the same game. With
+	this method, data is almost always instantly accessible immediately after a player teleports, making it useful
+	for multi-place games.
+--]]
+
+local DataStoreServiceRetriever = require(script.Parent.Parent.DataStoreServiceRetriever)
+local Promise = require(script.Parent.Parent.Promise)
+
+local OrderedBackups = {}
+OrderedBackups.__index = OrderedBackups
+
+function OrderedBackups:Get()
+	return Promise.async(function(resolve)
+		resolve(self.orderedDataStore:GetSortedAsync(false, 1):GetCurrentPage()[1])
+	end):andThen(function(mostRecentKeyPage)
+		if mostRecentKeyPage then
+			local recentKey = mostRecentKeyPage.value
+			self.dataStore2:Debug("most recent key", mostRecentKeyPage)
+			self.mostRecentKey = recentKey
+
+			return Promise.async(function(resolve)
+				resolve(self.dataStore:GetAsync(recentKey))
+			end)
+		else
+			self.dataStore2:Debug("no recent key")
+			return nil
+		end
+	end)
+end
+
+function OrderedBackups:Set(value)
+	local key = (self.mostRecentKey or 0) + 1
+
+	return Promise.async(function(resolve)
+		self.dataStore:SetAsync(key, value, { self.dataStore2.UserId })
+		resolve()
+	end):andThen(function()
+		return Promise.promisify(function()
+			self.orderedDataStore:SetAsync(key, key) -- OrderedDataStore は UserIds を受け付けない
+		end)()
+	end):andThen(function()
+		self.mostRecentKey = key
+	end)
+end
+
+function OrderedBackups.new(dataStore2)
+	local dataStoreService = DataStoreServiceRetriever.Get()
+	local dataStoreKey = dataStore2.Name .. "/" .. dataStore2.UserId
+
+	local info = {
+		dataStore2 = dataStore2,
+		dataStore = dataStoreService:GetDataStore(dataStoreKey),
+		orderedDataStore = dataStoreService:GetOrderedDataStore(dataStoreKey),
+	}
+
+	return setmetatable(info, OrderedBackups)
+end
+
+return OrderedBackups
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="12">
+          <Properties>
+            <string name="Name">Standard</string>
+            <string name="Source"><![CDATA[-- Standard saving of data stores
+-- The key you provide to DataStore2 is the name of the store with GetDataStore
+-- GetAsync/UpdateAsync are then called based on the user ID
+local DataStoreServiceRetriever = require(script.Parent.Parent.DataStoreServiceRetriever)
+local Promise = require(script.Parent.Parent.Promise)
+
+local Standard = {}
+Standard.__index = Standard
+
+function Standard:Get()
+	return Promise.async(function(resolve)
+		resolve(self.dataStore:GetAsync(self.userId))
+	end)
+end
+
+function Standard:Set(value)
+	return Promise.async(function(resolve)
+		self.dataStore:UpdateAsync(self.userId, function()
+			return value, { self.userId }
+		end)
+
+		resolve()
+	end)
+end
+
+function Standard.new(dataStore2)
+	return setmetatable({
+		dataStore = DataStoreServiceRetriever.Get():GetDataStore(dataStore2.Name),
+		userId = dataStore2.UserId,
+	}, Standard)
+end
+
+return Standard
+]]></string>
+          </Properties>
+        </Item>
+      </Item>
+      <Item class="ModuleScript" referent="13">
+        <Properties>
+          <string name="Name">Settings</string>
+          <string name="Source"><![CDATA[return {
+	-- What saving method you would like to use
+	-- Possible options:
+	-- OrderedBackups: The berezaa method that ensures prevention of data loss
+	-- Standard: Standard data stores. Equivalent to :GetDataStore(key):GetAsync(UserId)
+	SavingMethod = "OrderedBackups",
+}
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="14">
+        <Properties>
+          <string name="Name">TableUtil</string>
+          <string name="Source"><![CDATA[local TableUtil = {}
+
+function TableUtil.clone(tbl)
+	local clone = {}
+
+	for key, value in pairs(tbl) do
+		if typeof(value) == "table" then
+			clone[key] = TableUtil.clone(value)
+		else
+			clone[key] = value
+		end
+	end
+
+	return clone
+end
+
+return TableUtil
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="15">
+        <Properties>
+          <string name="Name">Verifier</string>
+          <string name="Source"><![CDATA[-- Written by Coercii
+
+local Verifier = {}
+
+function Verifier.typeValid(data)
+	return type(data) ~= "userdata", typeof(data)
+end
+
+function Verifier.scanValidity(tbl, passed, path)
+	if type(tbl) ~= "table" then
+		return Verifier.scanValidity({input = tbl}, {}, {})
+	end
+	passed, path = passed or {}, path or {"input"}
+	passed[tbl] = true
+	local tblType
+	do
+		local key = next(tbl)
+		if type(key) == "number" then
+			tblType = "Array"
+		else
+			tblType = "Dictionary"
+		end
+	end
+	local last = 0
+	for key, value in next, tbl do
+		path[#path + 1] = tostring(key)
+		if type(key) == "number" then
+			if tblType == "Dictionary" then
+				return false, path, "Mixed Array/Dictionary"
+			elseif key%1 ~= 0 then  -- if not an integer
+				return false, path, "Non-integer index"
+			elseif key == math.huge or key == -math.huge then
+				return false, path, "(-)Infinity index"
+			end
+		elseif type(key) ~= "string" then
+			return false, path, "Non-string key", typeof(key)
+		elseif tblType == "Array" then
+			return false, path, "Mixed Array/Dictionary"
+		end
+		if tblType == "Array" then
+			if last ~= key - 1 then
+				return false, path, "Array with non-sequential indexes"
+			end
+			last = key
+		end
+		local isTypeValid, valueType = Verifier.typeValid(value)
+		if not isTypeValid then
+			return false, path, "Invalid type", valueType
+		end
+		if type(value) == "table" then
+			if passed[value] then
+				return false, path, "Cyclic"
+			end
+			local isValid, keyPath, reason, extra = Verifier.scanValidity(value, passed, path)
+			if not isValid then
+				return isValid, keyPath, reason, extra
+			end
+		end
+		path[#path] = nil
+	end
+	passed[tbl] = nil
+	return true
+end
+
+function Verifier.getStringPath(path)
+	return table.concat(path, ".")
+end
+
+function Verifier.testValidity(input)
+	local isValid, keyPath, reason, extra = Verifier.scanValidity(input)
+	if not isValid then
+		if extra then
+			return "Invalid at "..Verifier.getStringPath(keyPath).." because: "..reason.." ("..tostring(extra)..")"
+		else
+			return "Invalid at "..Verifier.getStringPath(keyPath).." because: "..reason
+		end
+	end
+end
+
+return Verifier
+]]></string>
+        </Properties>
+      </Item>
+    </Item>
+    <Item class="Script" referent="16">
+      <Properties>
+        <string name="Name">Main</string>
+        <token name="RunContext">0</token>
+        <string name="Source"><![CDATA[-- Online Shop Tycoon: サーバー（お店の経営のしくみ・保存・ランキング）
+local DataStoreService = game:GetService("DataStoreService")
+local MarketplaceService = game:GetService("MarketplaceService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local ServerScriptService = game:GetService("ServerScriptService")
+local Workspace = game:GetService("Workspace")
+
+local DataStore2 = require(ServerScriptService.DataStore2)
+local ShopConfig = require(ReplicatedStorage.ShopConfig)
+
+---------------------------------------------------------------------
+-- Studio で DataStore が使えないときは、メモリ上の仮の保存場所で動かす
+---------------------------------------------------------------------
+local function createOfflineDataStoreService()
+	local function newStore(ordered)
+		local data = {}
+		local store = {}
+		function store:GetAsync(key)
+			return data[key]
+		end
+		function store:SetAsync(key, value)
+			data[key] = value
+		end
+		function store:UpdateAsync(key, transform)
+			local newValue = transform(data[key])
+			if newValue ~= nil then
+				data[key] = newValue
+			end
+			return newValue
+		end
+		if ordered then
+			function store:GetSortedAsync(ascending, pageSize)
+				local entries = {}
+				for key, value in pairs(data) do
+					table.insert(entries, { key = key, value = value })
+				end
+				table.sort(entries, function(a, b)
+					if ascending then
+						return a.value < b.value
+					end
+					return a.value > b.value
+				end)
+				local page = {}
+				for index = 1, math.min(pageSize, #entries) do
+					page[index] = entries[index]
+				end
+				return {
+					GetCurrentPage = function()
+						return page
+					end,
+				}
+			end
+		end
+		return store
+	end
+
+	local stores, orderedStores = {}, {}
+	local service = {}
+	function service:GetDataStore(name)
+		stores[name] = stores[name] or newStore(false)
+		return stores[name]
+	end
+	function service:GetOrderedDataStore(name)
+		orderedStores[name] = orderedStores[name] or newStore(true)
+		return orderedStores[name]
+	end
+	return service
+end
+
+if RunService:IsStudio() then
+	local available = pcall(function()
+		DataStoreService:GetDataStore("ShopTycoonAccessCheck"):GetAsync("check")
+	end)
+	if not available then
+		warn("[ShopTycoon] DataStore unavailable; using temporary in-memory saves for Studio.")
+		local offlineService = createOfflineDataStoreService()
+		require(ServerScriptService.DataStore2.DataStoreServiceRetriever).Get = function()
+			return offlineService
+		end
+	end
+end
+
+DataStore2.Combine(
+	"SHOP",
+	"money",
+	"totalEarned",
+	"stock",
+	"unlocked",
+	"priceMode",
+	"upgrades",
+	"franchises",
+	"lastDailyDay",
+	"dailyStreak",
+	"lastSeen",
+	"purchaseHistory"
+)
+
+---------------------------------------------------------------------
+-- 通信
+---------------------------------------------------------------------
+local remotes = Instance.new("Folder")
+remotes.Name = "ShopRemotes"
+
+local function remote(name)
+	local event = Instance.new("RemoteEvent")
+	event.Name = name
+	event.Parent = remotes
+	return event
+end
+
+local stateRemote = remote("State") -- サーバー → 画面: お店の状態
+local notifyRemote = remote("Notify") -- サーバー → 画面: お知らせ (key, color, ...)
+local orderRemote = remote("NewOrder") -- サーバー → 画面: 新しい注文 (productId, revenue)
+local actionRemote = remote("Action") -- 画面 → サーバー: 操作 (action, arg)
+remotes.Parent = ReplicatedStorage
+
+local GOLD = Color3.fromRGB(255, 215, 80)
+local GREEN = Color3.fromRGB(120, 255, 140)
+local PINK = Color3.fromRGB(255, 130, 200)
+
+---------------------------------------------------------------------
+-- プレイヤーのデータ
+---------------------------------------------------------------------
+local loaded = {}
+local session = {} -- 保存しない一時データ（注文待ち・広告など）
+
+local function store(player, key)
+	return DataStore2(key, player)
+end
+
+local function getMoney(player)
+	return store(player, "money"):Get(ShopConfig.STARTING_MONEY)
+end
+
+local function addMoney(player, amount)
+	store(player, "money"):Increment(amount, ShopConfig.STARTING_MONEY)
+	if amount > 0 then
+		store(player, "totalEarned"):Increment(amount, 0)
+	end
+end
+
+local function getUpgrades(player)
+	return store(player, "upgrades"):Get({})
+end
+
+local function upgradeLevel(player, upgradeId)
+	return getUpgrades(player)[upgradeId] or 0
+end
+
+local function getMultiplier(player)
+	return ShopConfig.Multiplier(
+		store(player, "franchises"):Get(0),
+		player:GetAttribute("FriendCount") or 0,
+		player:GetAttribute("Pass_doubleMoney") == true
+	)
+end
+
+local function totalStock(stock)
+	local total = 0
+	for _, count in pairs(stock) do
+		total = total + count
+	end
+	return total
+end
+
+local function unlockedCount(player)
+	return store(player, "unlocked"):Get(1)
+end
+
+local function salePrice(player, product)
+	local mode = ShopConfig.PriceModes[store(player, "priceMode"):Get("normal")] or ShopConfig.PriceModes.normal
+	return math.max(1, math.floor(product.price * mode.priceMultiplier * getMultiplier(player)))
+end
+
+-- 画面に送る状態
+local function sendState(player)
+	local s = session[player]
+	if not s then
+		return
+	end
+	local visitors = ShopConfig.BASE_VISITORS
+	local ads = {}
+	local now = os.clock()
+	for _, ad in ipairs(s.ads) do
+		if ad.endsAt > now then
+			visitors = visitors + ad.visitors
+			ads[ad.id] = math.ceil(ad.endsAt - now)
+		end
+	end
+	local pending = 0
+	for _, count in pairs(s.pending) do
+		pending = pending + count
+	end
+	stateRemote:FireClient(player, {
+		money = getMoney(player),
+		stock = store(player, "stock"):Get({}),
+		unlocked = unlockedCount(player),
+		priceMode = store(player, "priceMode"):Get("normal"),
+		upgrades = getUpgrades(player),
+		franchises = store(player, "franchises"):Get(0),
+		pending = pending,
+		visitors = visitors,
+		ads = ads,
+		multiplier = getMultiplier(player),
+		shipPerSecond = ShopConfig.ShipPerSecond(upgradeLevel(player, "staff"))
+			+ (player:GetAttribute("Pass_autoShipper") and ShopConfig.AUTO_SHIPPER_BONUS or 0),
+	})
+end
+
+---------------------------------------------------------------------
+-- 注文と発送
+---------------------------------------------------------------------
+local MAX_PENDING = 200
+
+local function shipOrders(player, count)
+	local s = session[player]
+	local shipped, revenue = 0, 0
+	for productId, pendingCount in pairs(s.pending) do
+		while pendingCount > 0 and shipped < count do
+			local product = ShopConfig.GetProduct(productId)
+			revenue = revenue + salePrice(player, product)
+			pendingCount = pendingCount - 1
+			shipped = shipped + 1
+		end
+		s.pending[productId] = pendingCount > 0 and pendingCount or nil
+		if shipped >= count then
+			break
+		end
+	end
+	if revenue > 0 then
+		addMoney(player, revenue)
+	end
+	return shipped, revenue
+end
+
+local function newVisitor(player, rng)
+	local s = session[player]
+	local stock = store(player, "stock"):Get({})
+	local candidates = {}
+	for index = 1, unlockedCount(player) do
+		local product = ShopConfig.Products[index]
+		if product and (stock[product.id] or 0) > 0 then
+			table.insert(candidates, product)
+		end
+	end
+	if #candidates == 0 then
+		return
+	end
+
+	local pending = 0
+	for _, count in pairs(s.pending) do
+		pending = pending + count
+	end
+	if pending >= MAX_PENDING then
+		return
+	end
+
+	local mode = ShopConfig.PriceModes[store(player, "priceMode"):Get("normal")] or ShopConfig.PriceModes.normal
+	local chance = ShopConfig.BASE_CONVERSION * mode.conversion * ShopConfig.RatingBonus(upgradeLevel(player, "rating"))
+	if rng:NextNumber() > math.min(chance, 0.95) then
+		return
+	end
+
+	local product = candidates[rng:NextInteger(1, #candidates)]
+	stock[product.id] = stock[product.id] - 1
+	store(player, "stock"):Set(stock)
+	s.pending[product.id] = (s.pending[product.id] or 0) + 1
+	orderRemote:FireClient(player, product.id, salePrice(player, product))
+end
+
+local function autoRestock(player)
+	if upgradeLevel(player, "restock") < 1 then
+		return
+	end
+	local stock = store(player, "stock"):Get({})
+	local capacity = ShopConfig.StockCapacity(upgradeLevel(player, "warehouse"))
+	local unlocked = unlockedCount(player)
+	local share = math.floor(capacity / unlocked)
+	local money = getMoney(player)
+	local changed = false
+	for index = unlocked, 1, -1 do
+		local product = ShopConfig.Products[index]
+		local have = stock[product.id] or 0
+		if have < share * 0.25 then
+			local room = capacity - totalStock(stock)
+			local amount = math.min(share - have, room, math.floor(money / product.cost))
+			if amount > 0 then
+				stock[product.id] = have + amount
+				money = money - amount * product.cost
+				addMoney(player, -amount * product.cost)
+				changed = true
+			end
+		end
+	end
+	if changed then
+		store(player, "stock"):Set(stock)
+	end
+end
+
+---------------------------------------------------------------------
+-- 操作（画面から）
+---------------------------------------------------------------------
+local lastShipClick = {}
+
+local actions = {}
+
+function actions.ship(player)
+	local now = os.clock()
+	if lastShipClick[player] and now - lastShipClick[player] < 0.08 then
+		return
+	end
+	lastShipClick[player] = now
+	local shipped, revenue = shipOrders(player, ShopConfig.MANUAL_SHIP)
+	if shipped > 0 then
+		notifyRemote:FireClient(player, "toast_shipped", GREEN, revenue)
+	end
+end
+
+function actions.buyStock(player, productId)
+	if type(productId) ~= "string" then
+		return
+	end
+	local product, index = ShopConfig.GetProduct(productId)
+	if not product or index > unlockedCount(player) then
+		return
+	end
+	local stock = store(player, "stock"):Get({})
+	local capacity = ShopConfig.StockCapacity(upgradeLevel(player, "warehouse"))
+	local room = capacity - totalStock(stock)
+	local amount = math.min(10, room, math.floor(getMoney(player) / product.cost))
+	if room <= 0 then
+		notifyRemote:FireClient(player, "toast_warehouse_full", PINK)
+		return
+	end
+	if amount <= 0 then
+		notifyRemote:FireClient(player, "toast_need_money", PINK, product.cost)
+		return
+	end
+	stock[productId] = (stock[productId] or 0) + amount
+	store(player, "stock"):Set(stock)
+	addMoney(player, -amount * product.cost)
+end
+
+function actions.unlock(player)
+	local unlocked = unlockedCount(player)
+	local product = ShopConfig.Products[unlocked + 1]
+	if not product then
+		return
+	end
+	if getMoney(player) < product.unlock then
+		notifyRemote:FireClient(player, "toast_need_money", PINK, product.unlock)
+		return
+	end
+	addMoney(player, -product.unlock)
+	store(player, "unlocked"):Set(unlocked + 1)
+	notifyRemote:FireAllClients("announce_unlock", GOLD, player.DisplayName, "@product_" .. product.id)
+end
+
+function actions.priceMode(player, mode)
+	if type(mode) == "string" and ShopConfig.PriceModes[mode] then
+		store(player, "priceMode"):Set(mode)
+	end
+end
+
+function actions.runAd(player, adId)
+	local s = session[player]
+	for _, ad in ipairs(ShopConfig.Ads) do
+		if ad.id == adId then
+			for _, active in ipairs(s.ads) do
+				if active.id == adId and active.endsAt > os.clock() then
+					return
+				end
+			end
+			local cost = ShopConfig.AdCost(ad, unlockedCount(player))
+			if getMoney(player) < cost then
+				notifyRemote:FireClient(player, "toast_need_money", PINK, cost)
+				return
+			end
+			addMoney(player, -cost)
+			table.insert(s.ads, { id = ad.id, visitors = ad.visitors, endsAt = os.clock() + ad.duration })
+			notifyRemote:FireClient(player, "toast_ad_started", GOLD, "@ad_" .. ad.id)
+			return
+		end
+	end
+end
+
+function actions.upgrade(player, upgradeId)
+	local upgrade = type(upgradeId) == "string" and ShopConfig.Upgrades[upgradeId]
+	if not upgrade then
+		return
+	end
+	local upgrades = getUpgrades(player)
+	local level = upgrades[upgradeId] or 0
+	if level >= upgrade.maxLevel then
+		return
+	end
+	local cost = ShopConfig.UpgradeCost(upgradeId, level)
+	if getMoney(player) < cost then
+		notifyRemote:FireClient(player, "toast_need_money", PINK, cost)
+		return
+	end
+	addMoney(player, -cost)
+	upgrades[upgradeId] = level + 1
+	store(player, "upgrades"):Set(upgrades)
+end
+
+function actions.sellCompany(player)
+	local franchises = store(player, "franchises"):Get(0)
+	local cost = ShopConfig.SellCompanyCost(franchises)
+	if getMoney(player) < cost then
+		notifyRemote:FireClient(player, "toast_need_money", PINK, cost)
+		return
+	end
+	store(player, "money"):Set(ShopConfig.STARTING_MONEY)
+	store(player, "stock"):Set({})
+	store(player, "unlocked"):Set(1)
+	store(player, "upgrades"):Set({})
+	store(player, "priceMode"):Set("normal")
+	store(player, "franchises"):Set(franchises + 1)
+	session[player].pending = {}
+	session[player].ads = {}
+	notifyRemote:FireAllClients("announce_sold", PINK, player.DisplayName, franchises + 1)
+end
+
+actionRemote.OnServerEvent:Connect(function(player, action, arg)
+	if not loaded[player] or type(action) ~= "string" then
+		return
+	end
+	local handler = actions[action]
+	if handler then
+		handler(player, arg)
+		sendState(player)
+	end
+end)
+
+---------------------------------------------------------------------
+-- 参加・退出・毎ティックの処理
+---------------------------------------------------------------------
+local friendCache = {}
+
+local function areFriends(a, b)
+	local key = math.min(a.UserId, b.UserId) .. ":" .. math.max(a.UserId, b.UserId)
+	if friendCache[key] == nil then
+		local ok, result = pcall(function()
+			return a:IsFriendsWith(b.UserId)
+		end)
+		friendCache[key] = ok and result or false
+	end
+	return friendCache[key]
+end
+
+local function updateFriends()
+	for player in pairs(loaded) do
+		local count = 0
+		for other in pairs(loaded) do
+			if other ~= player and other.Parent and areFriends(player, other) then
+				count = count + 1
+			end
+		end
+		local before = player:GetAttribute("FriendCount") or 0
+		player:SetAttribute("FriendCount", count)
+		if count > before and count <= 5 then
+			notifyRemote:FireClient(player, "announce_friend", PINK, count * 20)
+		end
+	end
+end
+
+local function checkGamePasses(player)
+	for passKey, pass in pairs(ShopConfig.GamePasses) do
+		if pass.id ~= 0 then
+			local ok, owns = pcall(function()
+				return MarketplaceService:UserOwnsGamePassAsync(player.UserId, pass.id)
+			end)
+			if ok and owns then
+				player:SetAttribute("Pass_" .. passKey, true)
+			end
+		end
+	end
+end
+
+local function giveDailyAndOffline(player)
+	local today = math.floor(os.time() / 86400)
+	local lastDay = store(player, "lastDailyDay"):Get(0)
+	if today > lastDay then
+		local streak = 1
+		if lastDay == today - 1 then
+			streak = store(player, "dailyStreak"):Get(0) + 1
+		end
+		local reward = math.floor(ShopConfig.DAILY_BASE * math.min(streak, 7) * getMultiplier(player))
+		store(player, "lastDailyDay"):Set(today)
+		store(player, "dailyStreak"):Set(streak)
+		addMoney(player, reward)
+		notifyRemote:FireClient(player, "announce_daily", GREEN, streak, reward)
+	end
+
+	local lastSeen = store(player, "lastSeen"):Get(0)
+	local now = os.time()
+	store(player, "lastSeen"):Set(now)
+	if lastSeen > 0 then
+		local away = math.min(now - lastSeen, ShopConfig.OFFLINE_MAX_SECONDS)
+		local shipRate = ShopConfig.ShipPerSecond(upgradeLevel(player, "staff"))
+		if away >= 60 and shipRate > 0 then
+			local best = ShopConfig.Products[unlockedCount(player)]
+			local reward = math.floor(away * shipRate * best.price * ShopConfig.OFFLINE_RATE * getMultiplier(player) * 0.3)
+			if reward > 0 then
+				addMoney(player, reward)
+				notifyRemote:FireClient(player, "announce_offline", GREEN, reward, math.floor(away / 60))
+			end
+		end
+	end
+end
+
+local function onPlayerAdded(player)
+	local leaderstats = Instance.new("Folder")
+	leaderstats.Name = "leaderstats"
+
+	local money = Instance.new("IntValue")
+	money.Name = "Money"
+	money.Value = getMoney(player)
+	money.Parent = leaderstats
+	store(player, "money"):OnUpdate(function(value)
+		money.Value = value
+	end)
+
+	local franchises = Instance.new("IntValue")
+	franchises.Name = "Franchises"
+	franchises.Value = store(player, "franchises"):Get(0)
+	franchises.Parent = leaderstats
+	store(player, "franchises"):OnUpdate(function(value)
+		franchises.Value = value
+	end)
+
+	if not player.Parent then
+		return
+	end
+	leaderstats.Parent = player
+
+	session[player] = { pending = {}, ads = {}, visitorAcc = 0, shipAcc = 0, rng = Random.new(), seconds = 0 }
+	player:SetAttribute("FriendCount", 0)
+	checkGamePasses(player)
+	loaded[player] = true
+	updateFriends()
+	sendState(player)
+
+	task.delay(4, function()
+		if loaded[player] then
+			giveDailyAndOffline(player)
+			sendState(player)
+		end
+	end)
+end
+
+for _, player in ipairs(Players:GetPlayers()) do
+	task.spawn(onPlayerAdded, player)
+end
+Players.PlayerAdded:Connect(onPlayerAdded)
+
+Players.PlayerRemoving:Connect(function(player)
+	if loaded[player] then
+		store(player, "lastSeen"):Set(os.time())
+	end
+	loaded[player] = nil
+	session[player] = nil
+	lastShipClick[player] = nil
+	updateFriends()
+end)
+
+local TICK = 0.5
+task.spawn(function()
+	while true do
+		task.wait(TICK)
+		local now = os.clock()
+		for player in pairs(loaded) do
+			local s = session[player]
+			if s then
+				-- 終わった広告を消す
+				local visitors = ShopConfig.BASE_VISITORS
+				for i = #s.ads, 1, -1 do
+					if s.ads[i].endsAt <= now then
+						table.remove(s.ads, i)
+					else
+						visitors = visitors + s.ads[i].visitors
+					end
+				end
+
+				-- お客さんが来る
+				s.visitorAcc = s.visitorAcc + visitors * TICK
+				while s.visitorAcc >= 1 do
+					s.visitorAcc = s.visitorAcc - 1
+					newVisitor(player, s.rng)
+				end
+
+				-- スタッフが自動で発送
+				local shipRate = ShopConfig.ShipPerSecond(upgradeLevel(player, "staff"))
+					+ (player:GetAttribute("Pass_autoShipper") and ShopConfig.AUTO_SHIPPER_BONUS or 0)
+				s.shipAcc = s.shipAcc + shipRate * TICK
+				if s.shipAcc >= 1 then
+					local count = math.floor(s.shipAcc)
+					s.shipAcc = s.shipAcc - count
+					shipOrders(player, count)
+				end
+
+				s.seconds = s.seconds + TICK
+				if s.seconds % 5 < TICK then
+					autoRestock(player)
+				end
+				if s.seconds % 30 < TICK then
+					store(player, "lastSeen"):Set(os.time())
+				end
+
+				sendState(player)
+			end
+		end
+	end
+end)
+
+---------------------------------------------------------------------
+-- 課金
+---------------------------------------------------------------------
+MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, passId, purchased)
+	if not purchased then
+		return
+	end
+	for passKey, pass in pairs(ShopConfig.GamePasses) do
+		if pass.id == passId then
+			player:SetAttribute("Pass_" .. passKey, true)
+			notifyRemote:FireAllClients("announce_pass", PINK, player.DisplayName, "@pass_" .. passKey)
+		end
+	end
+end)
+
+---------------------------------------------------------------------
+-- ランキング看板（全サーバー共通、これまでの売上合計）
+---------------------------------------------------------------------
+local rankingOk, rankingStore = pcall(function()
+	return DataStoreService:GetOrderedDataStore("TotalEarned")
+end)
+
+local board = Workspace:WaitForChild("RankingBoard", 30)
+local rankLabels = {}
+if board then
+	local surface = board:FindFirstChildOfClass("SurfaceGui")
+	for rank = 1, 10 do
+		rankLabels[rank] = surface and surface:FindFirstChild("Rank" .. rank)
+	end
+end
+
+local nameCache = {}
+local function getName(userId)
+	if not nameCache[userId] then
+		local ok, name = pcall(function()
+			return Players:GetNameFromUserIdAsync(userId)
+		end)
+		nameCache[userId] = ok and name or "???"
+	end
+	return nameCache[userId]
+end
+
+local function abbreviate(n)
+	local units = { "", "K", "M", "B", "T" }
+	local i = 1
+	while n >= 1000 and i < #units do
+		n = n / 1000
+		i = i + 1
+	end
+	return (i == 1 and string.format("%d", n) or string.format("%.1f", n)) .. units[i]
+end
+
+if rankingOk then
+	task.spawn(function()
+		task.wait(5)
+		while true do
+			for player in pairs(loaded) do
+				local total = store(player, "totalEarned"):Get(0)
+				pcall(function()
+					rankingStore:SetAsync(tostring(player.UserId), math.floor(total))
+				end)
+			end
+			local ok, entries = pcall(function()
+				return rankingStore:GetSortedAsync(false, 10):GetCurrentPage()
+			end)
+			if ok then
+				for rank = 1, 10 do
+					local label = rankLabels[rank]
+					local entry = entries[rank]
+					if label then
+						label.Text = entry and string.format("%d. %s  $%s", rank, getName(tonumber(entry.key)), abbreviate(entry.value)) or ""
+					end
+				end
+			end
+			task.wait(60)
+		end
+	end)
+end
+]]></string>
+      </Properties>
+    </Item>
+    <Item class="Script" referent="17">
+      <Properties>
+        <string name="Name">World</string>
+        <token name="RunContext">0</token>
+        <string name="Source"><![CDATA[-- Online Shop Tycoon: ワールド（モダンなオフィス・倉庫・ランキング看板・光）
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+
+local world = Instance.new("Folder")
+world.Name = "World"
+world.Parent = Workspace
+
+local function part(props)
+	local p = Instance.new("Part")
+	p.Anchored = true
+	p.TopSurface = Enum.SurfaceType.Smooth
+	p.BottomSurface = Enum.SurfaceType.Smooth
+	for key, value in pairs(props) do
+		p[key] = value
+	end
+	p.Parent = props.Parent or world
+	return p
+end
+
+---------------------------------------------------------------------
+-- 光（夜のネオンが映えるオフィス）
+---------------------------------------------------------------------
+Lighting.ClockTime = 19.5
+Lighting.Brightness = 2
+Lighting.Ambient = Color3.fromRGB(60, 55, 80)
+Lighting.OutdoorAmbient = Color3.fromRGB(90, 85, 120)
+Lighting.EnvironmentDiffuseScale = 1
+Lighting.EnvironmentSpecularScale = 1
+
+local atmosphere = Instance.new("Atmosphere")
+atmosphere.Density = 0.3
+atmosphere.Color = Color3.fromRGB(120, 100, 170)
+atmosphere.Decay = Color3.fromRGB(60, 50, 110)
+atmosphere.Haze = 1.5
+atmosphere.Glare = 0.2
+atmosphere.Parent = Lighting
+
+local bloom = Instance.new("BloomEffect")
+bloom.Intensity = 0.8
+bloom.Size = 30
+bloom.Threshold = 0.9
+bloom.Parent = Lighting
+
+local color = Instance.new("ColorCorrectionEffect")
+color.Saturation = 0.15
+color.Contrast = 0.1
+color.Parent = Lighting
+
+---------------------------------------------------------------------
+-- 地面と街
+---------------------------------------------------------------------
+part({
+	Name = "Ground",
+	Size = Vector3.new(400, 2, 400),
+	Position = Vector3.new(0, -1, 0),
+	Color = Color3.fromRGB(45, 45, 52),
+	Material = Enum.Material.Asphalt,
+})
+
+local spawn = Instance.new("SpawnLocation")
+spawn.Anchored = true
+spawn.Size = Vector3.new(10, 1, 10)
+spawn.Position = Vector3.new(0, 1.5, 18)
+spawn.Material = Enum.Material.SmoothPlastic
+spawn.Color = Color3.fromRGB(255, 255, 255)
+spawn.Transparency = 0.6
+spawn.Parent = world
+
+-- 店の床とガラスの壁
+local FLOOR = Color3.fromRGB(235, 232, 228)
+part({ Size = Vector3.new(70, 1, 50), Position = Vector3.new(0, 0.5, 0), Color = FLOOR, Material = Enum.Material.Marble })
+
+local glass = { Color = Color3.fromRGB(170, 200, 255), Material = Enum.Material.Glass, Transparency = 0.6 }
+for _, wall in ipairs({
+	{ Vector3.new(70, 16, 1), Vector3.new(0, 9, -25) },
+	{ Vector3.new(1, 16, 50), Vector3.new(-35, 9, 0) },
+	{ Vector3.new(1, 16, 50), Vector3.new(35, 9, 0) },
+}) do
+	part({
+		Size = wall[1],
+		Position = wall[2],
+		Color = glass.Color,
+		Material = glass.Material,
+		Transparency = glass.Transparency,
+	})
+end
+part({ Size = Vector3.new(72, 1, 52), Position = Vector3.new(0, 17.5, 0), Color = Color3.fromRGB(30, 30, 38), Material = Enum.Material.Concrete })
+
+-- 天井のネオン
+for x = -28, 28, 14 do
+	local strip = part({
+		Size = Vector3.new(10, 0.3, 1),
+		Position = Vector3.new(x, 16.8, 0),
+		Color = Color3.fromRGB(180, 120, 255),
+		Material = Enum.Material.Neon,
+	})
+	local light = Instance.new("SurfaceLight")
+	light.Face = Enum.NormalId.Bottom
+	light.Color = strip.Color
+	light.Range = 18
+	light.Brightness = 2
+	light.Parent = strip
+end
+
+-- 机とパソコン（飾り）
+local DESK = Color3.fromRGB(60, 50, 45)
+for i, x in ipairs({ -20, -8, 4, 16 }) do
+	part({ Size = Vector3.new(8, 0.6, 4), Position = Vector3.new(x, 4, -10), Color = DESK, Material = Enum.Material.Wood })
+	part({ Size = Vector3.new(0.6, 3.5, 3.6), Position = Vector3.new(x - 3.6, 2, -10), Color = DESK, Material = Enum.Material.Wood })
+	part({ Size = Vector3.new(0.6, 3.5, 3.6), Position = Vector3.new(x + 3.6, 2, -10), Color = DESK, Material = Enum.Material.Wood })
+	local screen = part({
+		Size = Vector3.new(4.5, 2.8, 0.3),
+		CFrame = CFrame.new(x, 5.8, -11.2) * CFrame.Angles(math.rad(-8), 0, 0),
+		Color = Color3.fromRGB(20, 20, 25),
+		Material = Enum.Material.SmoothPlastic,
+	})
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = Enum.NormalId.Back
+	gui.LightInfluence = 0
+	gui.Parent = screen
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1, 0, 1, 0)
+	label.BackgroundColor3 = Color3.fromHSV((i * 0.18) % 1, 0.6, 0.5)
+	label.Text = "NEW ORDER!"
+	label.TextColor3 = Color3.fromRGB(255, 255, 255)
+	label.TextScaled = true
+	label.Font = Enum.Font.GothamBlack
+	label.Parent = gui
+end
+
+-- 倉庫の段ボール
+local boxRng = Random.new(5)
+for _ = 1, 40 do
+	local size = boxRng:NextNumber(1.6, 3)
+	part({
+		Size = Vector3.new(size, size * 0.8, size),
+		CFrame = CFrame.new(boxRng:NextNumber(-32, -20), size * 0.4 + 1 + boxRng:NextInteger(0, 2) * size * 0.8, boxRng:NextNumber(4, 22))
+			* CFrame.Angles(0, boxRng:NextNumber(0, math.pi), 0),
+		Color = Color3.fromRGB(190, 145, 95),
+		Material = Enum.Material.Cardboard,
+	})
+end
+
+---------------------------------------------------------------------
+-- ランキング看板（サーバーの Main が中身を書く）
+---------------------------------------------------------------------
+local board = part({
+	Name = "RankingBoard",
+	Size = Vector3.new(16, 12, 1),
+	Position = Vector3.new(24, 7, -23.5),
+	Color = Color3.fromRGB(25, 20, 40),
+	Material = Enum.Material.SmoothPlastic,
+})
+local surface = Instance.new("SurfaceGui")
+surface.Face = Enum.NormalId.Back
+surface.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+surface.PixelsPerStud = 40
+surface.LightInfluence = 0
+surface.Parent = board
+local layout = Instance.new("UIListLayout")
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Parent = surface
+
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.LayoutOrder = 0
+title.Size = UDim2.new(1, 0, 0.14, 0)
+title.BackgroundTransparency = 1
+title.Text = "TOP SELLERS"
+title.TextColor3 = Color3.fromRGB(255, 215, 80)
+title.TextScaled = true
+title.Font = Enum.Font.GothamBlack
+title:SetAttribute("LocaleKey", "ranking_title")
+title.Parent = surface
+
+for rank = 1, 10 do
+	local label = Instance.new("TextLabel")
+	label.Name = "Rank" .. rank
+	label.LayoutOrder = rank
+	label.Size = UDim2.new(1, 0, 0.086, 0)
+	label.BackgroundTransparency = 1
+	label.Text = ""
+	label.TextColor3 = rank <= 3 and Color3.fromRGB(255, 225, 120) or Color3.fromRGB(255, 255, 255)
+	label.TextScaled = true
+	label.Font = Enum.Font.GothamBold
+	label.Parent = surface
+end
+
+-- 看板（店の名前）
+local sign = part({
+	Size = Vector3.new(30, 5, 1),
+	Position = Vector3.new(0, 21, -25),
+	Color = Color3.fromRGB(20, 20, 30),
+})
+local signGui = Instance.new("SurfaceGui")
+signGui.Face = Enum.NormalId.Back
+signGui.LightInfluence = 0
+signGui.Parent = sign
+local signText = Instance.new("TextLabel")
+signText.Size = UDim2.new(1, 0, 1, 0)
+signText.BackgroundTransparency = 1
+signText.Text = "ONLINE SHOP TYCOON"
+signText.TextColor3 = Color3.fromRGB(255, 120, 220)
+signText.TextScaled = true
+signText.Font = Enum.Font.GothamBlack
+signText.Parent = signGui
+]]></string>
+      </Properties>
+    </Item>
+  </Item>
+  <Item class="ServerStorage" referent="18">
+    <Properties>
+      <string name="Name">ServerStorage</string>
+    </Properties>
+    <Item class="BoolValue" referent="19">
+      <Properties>
+        <string name="Name">SaveInStudio</string>
+        <bool name="Value">true</bool>
+      </Properties>
+    </Item>
+  </Item>
+  <Item class="StarterPlayer" referent="20">
+    <Properties>
+      <string name="Name">StarterPlayer</string>
+    </Properties>
+    <Item class="StarterPlayerScripts" referent="21">
+      <Properties>
+        <string name="Name">StarterPlayerScripts</string>
+      </Properties>
+      <Item class="LocalScript" referent="22">
+        <Properties>
+          <string name="Name">ShopGui</string>
+          <string name="Source"><![CDATA[-- Online Shop Tycoon: 画面（お金・発送ボタン・管理画面・注文の通知）
+local MarketplaceService = game:GetService("MarketplaceService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SocialService = game:GetService("SocialService")
+local TweenService = game:GetService("TweenService")
+local Workspace = game:GetService("Workspace")
+
+local ShopConfig = require(ReplicatedStorage:WaitForChild("ShopConfig"))
+local Locale = require(ReplicatedStorage:WaitForChild("Locale"))
+
+local remotes = ReplicatedStorage:WaitForChild("ShopRemotes")
+local stateRemote = remotes:WaitForChild("State")
+local notifyRemote = remotes:WaitForChild("Notify")
+local orderRemote = remotes:WaitForChild("NewOrder")
+local actionRemote = remotes:WaitForChild("Action")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local language = Locale.GetLanguage(player)
+
+local function L(key, ...)
+	return Locale.Get(language, key, ...)
+end
+
+-- 1234 -> "1,234"、1234567 -> "1.23M"
+local function money(n)
+	n = math.floor(n or 0)
+	if n < 100000 then
+		local s = string.format("%d", n)
+		local formatted = s:reverse():gsub("(%d%d%d)", "%1,"):reverse()
+		if formatted:sub(1, 1) == "," then
+			formatted = formatted:sub(2)
+		end
+		return formatted
+	end
+	local units = { "K", "M", "B", "T", "Qa" }
+	local value, i = n / 1000, 1
+	while value >= 1000 and i < #units do
+		value = value / 1000
+		i = i + 1
+	end
+	return string.format("%.2f", value) .. units[i]
+end
+
+local GOLD = Color3.fromRGB(255, 215, 80)
+local PANEL = Color3.fromRGB(28, 22, 45)
+local BLUE = Color3.fromRGB(70, 120, 255)
+local GREEN = Color3.fromRGB(46, 170, 90)
+local ORANGE = Color3.fromRGB(255, 140, 40)
+local PURPLE = Color3.fromRGB(150, 70, 220)
+local GREY = Color3.fromRGB(85, 85, 95)
+local WHITE = Color3.fromRGB(255, 255, 255)
+
+local function corner(parent, radius)
+	local c = Instance.new("UICorner")
+	c.CornerRadius = UDim.new(0, radius)
+	c.Parent = parent
+end
+
+local function stroke(parent, colorValue, thickness)
+	local s = Instance.new("UIStroke")
+	s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	s.Color = colorValue
+	s.Thickness = thickness
+	s.Parent = parent
+end
+
+local function label(parent, props)
+	local l = Instance.new("TextLabel")
+	l.BackgroundTransparency = 1
+	l.TextColor3 = WHITE
+	l.TextScaled = true
+	l.Font = Enum.Font.GothamBold
+	for key, value in pairs(props) do
+		l[key] = value
+	end
+	l.Parent = parent
+	return l
+end
+
+local function button(parent, props, onClick)
+	local b = Instance.new("TextButton")
+	b.TextColor3 = WHITE
+	b.TextScaled = true
+	b.Font = Enum.Font.GothamBold
+	b.AutoButtonColor = true
+	for key, value in pairs(props) do
+		b[key] = value
+	end
+	b.Parent = parent
+	corner(b, 10)
+	if onClick then
+		b.Activated:Connect(onClick)
+	end
+	return b
+end
+
+local function act(action, arg)
+	actionRemote:FireServer(action, arg)
+end
+
+local screen = Instance.new("ScreenGui")
+screen.Name = "ShopGui"
+screen.ResetOnSpawn = false
+
+---------------------------------------------------------------------
+-- 上: お金と状況
+---------------------------------------------------------------------
+local moneyLabel = label(screen, {
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0, 10),
+	Size = UDim2.new(0, 300, 0, 54),
+	BackgroundTransparency = 0.25,
+	BackgroundColor3 = PANEL,
+	TextColor3 = Color3.fromRGB(120, 255, 150),
+	Font = Enum.Font.GothamBlack,
+	Text = "$0",
+})
+corner(moneyLabel, 12)
+stroke(moneyLabel, Color3.fromRGB(120, 255, 150), 2)
+
+local statusLabel = label(screen, {
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0, 68),
+	Size = UDim2.new(0, 560, 0, 24),
+	TextStrokeTransparency = 0.4,
+	Font = Enum.Font.Gotham,
+	Text = "",
+})
+
+---------------------------------------------------------------------
+-- 下: 発送ボタン（いちばん大事なボタン）
+---------------------------------------------------------------------
+local shipButton = button(screen, {
+	AnchorPoint = Vector2.new(0.5, 1),
+	Position = UDim2.new(0.5, 0, 1, -20),
+	Size = UDim2.new(0, 340, 0, 78),
+	BackgroundColor3 = ORANGE,
+	Font = Enum.Font.GothamBlack,
+	Text = L("ship", 0),
+}, function()
+	act("ship")
+end)
+stroke(shipButton, WHITE, 3)
+local shipScale = Instance.new("UIScale")
+shipScale.Parent = shipButton
+shipButton.Activated:Connect(function()
+	shipScale.Scale = 0.92
+	TweenService:Create(shipScale, TweenInfo.new(0.15, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+end)
+
+---------------------------------------------------------------------
+-- 左: 管理画面ボタンと招待ボタン
+---------------------------------------------------------------------
+local dashboardButton = button(screen, {
+	AnchorPoint = Vector2.new(0, 0.5),
+	Position = UDim2.new(0, 16, 0.5, -40),
+	Size = UDim2.new(0, 210, 0, 64),
+	BackgroundColor3 = BLUE,
+	Font = Enum.Font.GothamBlack,
+	Text = L("dashboard"),
+})
+stroke(dashboardButton, WHITE, 2)
+
+local inviteButton = button(screen, {
+	AnchorPoint = Vector2.new(0, 0.5),
+	Position = UDim2.new(0, 16, 0.5, 34),
+	Size = UDim2.new(0, 210, 0, 44),
+	BackgroundColor3 = Color3.fromRGB(230, 80, 150),
+	Text = L("invite"),
+	Visible = false,
+}, function()
+	pcall(function()
+		SocialService:PromptGameInvite(player)
+	end)
+end)
+task.spawn(function()
+	local ok, canInvite = pcall(function()
+		return SocialService:CanSendGameInviteAsync(player)
+	end)
+	inviteButton.Visible = ok and canInvite == true
+end)
+
+---------------------------------------------------------------------
+-- 右: 注文の通知（どんどん流れる）
+---------------------------------------------------------------------
+local feed = Instance.new("Frame")
+feed.AnchorPoint = Vector2.new(1, 0.5)
+feed.Position = UDim2.new(1, -16, 0.5, 0)
+feed.Size = UDim2.new(0, 290, 0, 300)
+feed.BackgroundTransparency = 1
+feed.Parent = screen
+local feedLayout = Instance.new("UIListLayout")
+feedLayout.SortOrder = Enum.SortOrder.LayoutOrder
+feedLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+feedLayout.Padding = UDim.new(0, 6)
+feedLayout.Parent = feed
+
+local feedCount = 0
+orderRemote.OnClientEvent:Connect(function(productId, revenue)
+	feedCount = feedCount + 1
+	local product = ShopConfig.GetProduct(productId)
+	local card = label(feed, {
+		LayoutOrder = feedCount,
+		Size = UDim2.new(1, 0, 0, 44),
+		BackgroundTransparency = 0.1,
+		BackgroundColor3 = Color3.fromRGB(30, 140, 80),
+		Text = L("new_order", L("product_" .. productId), money(revenue)),
+	})
+	corner(card, 10)
+	if product then
+		stroke(card, product.color, 2)
+	end
+
+	local cards = {}
+	for _, child in ipairs(feed:GetChildren()) do
+		if child:IsA("TextLabel") then
+			table.insert(cards, child)
+		end
+	end
+	if #cards > 5 then
+		table.sort(cards, function(a, b)
+			return a.LayoutOrder < b.LayoutOrder
+		end)
+		cards[1]:Destroy()
+	end
+	task.delay(3, function()
+		if card.Parent then
+			local fade = TweenService:Create(card, TweenInfo.new(0.5), { TextTransparency = 1, BackgroundTransparency = 1 })
+			fade.Completed:Connect(function()
+				card:Destroy()
+			end)
+			fade:Play()
+		end
+	end)
+end)
+
+---------------------------------------------------------------------
+-- お知らせ
+---------------------------------------------------------------------
+local toastArea = Instance.new("Frame")
+toastArea.AnchorPoint = Vector2.new(0.5, 0)
+toastArea.Position = UDim2.new(0.5, 0, 0, 98)
+toastArea.Size = UDim2.new(0, 520, 0, 120)
+toastArea.BackgroundTransparency = 1
+toastArea.Parent = screen
+local toastLayout = Instance.new("UIListLayout")
+toastLayout.SortOrder = Enum.SortOrder.LayoutOrder
+toastLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+toastLayout.Padding = UDim.new(0, 4)
+toastLayout.Parent = toastArea
+
+local toastCount = 0
+local function showToast(text, colorValue)
+	toastCount = toastCount + 1
+	local toast = label(toastArea, {
+		LayoutOrder = toastCount,
+		Size = UDim2.new(1, 0, 0, 32),
+		BackgroundTransparency = 0.2,
+		BackgroundColor3 = PANEL,
+		TextColor3 = colorValue or GOLD,
+		Text = text,
+	})
+	corner(toast, 10)
+	local toasts = {}
+	for _, child in ipairs(toastArea:GetChildren()) do
+		if child:IsA("TextLabel") then
+			table.insert(toasts, child)
+		end
+	end
+	if #toasts > 3 then
+		table.sort(toasts, function(a, b)
+			return a.LayoutOrder < b.LayoutOrder
+		end)
+		toasts[1]:Destroy()
+	end
+	task.delay(3.5, function()
+		if toast.Parent then
+			toast:Destroy()
+		end
+	end)
+end
+
+local function localizeArg(arg)
+	if type(arg) == "number" and arg == math.floor(arg) then
+		return money(arg)
+	elseif type(arg) == "string" and string.sub(arg, 1, 1) == "@" then
+		return L(string.sub(arg, 2))
+	end
+	return arg
+end
+
+notifyRemote.OnClientEvent:Connect(function(key, colorValue, ...)
+	local count = select("#", ...)
+	local args = { ... }
+	for i = 1, count do
+		args[i] = localizeArg(args[i])
+	end
+	showToast(L(key, table.unpack(args, 1, count)), colorValue)
+end)
+
+---------------------------------------------------------------------
+-- 管理画面（パソコンの画面）
+---------------------------------------------------------------------
+local panel = Instance.new("Frame")
+panel.AnchorPoint = Vector2.new(0.5, 0.5)
+panel.Position = UDim2.new(0.5, 0, 0.5, 0)
+panel.Size = UDim2.new(0, 620, 0, 440)
+panel.BackgroundColor3 = PANEL
+panel.Visible = false
+panel.Parent = screen
+corner(panel, 16)
+stroke(panel, Color3.fromRGB(150, 110, 255), 3)
+
+local closeButton = button(panel, {
+	AnchorPoint = Vector2.new(1, 0),
+	Position = UDim2.new(1, -10, 0, 10),
+	Size = UDim2.new(0, 90, 0, 34),
+	BackgroundColor3 = GREY,
+	Text = L("close"),
+}, function()
+	panel.Visible = false
+end)
+closeButton.ZIndex = 2
+
+dashboardButton.Activated:Connect(function()
+	panel.Visible = not panel.Visible
+end)
+
+local tabBar = Instance.new("Frame")
+tabBar.Position = UDim2.new(0, 10, 0, 10)
+tabBar.Size = UDim2.new(1, -120, 0, 36)
+tabBar.BackgroundTransparency = 1
+tabBar.Parent = panel
+local tabLayout = Instance.new("UIListLayout")
+tabLayout.FillDirection = Enum.FillDirection.Horizontal
+tabLayout.Padding = UDim.new(0, 6)
+tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+tabLayout.Parent = tabBar
+
+local pages = {}
+local tabButtons = {}
+local TAB_ORDER = { "products", "ads", "upgrades", "company" }
+
+local function showTab(tabId)
+	for id, page in pairs(pages) do
+		page.Visible = id == tabId
+		tabButtons[id].BackgroundColor3 = id == tabId and PURPLE or GREY
+	end
+end
+
+for index, tabId in ipairs(TAB_ORDER) do
+	local page = Instance.new("ScrollingFrame")
+	page.Position = UDim2.new(0, 10, 0, 54)
+	page.Size = UDim2.new(1, -20, 1, -64)
+	page.BackgroundTransparency = 1
+	page.BorderSizePixel = 0
+	page.ScrollBarThickness = 6
+	page.CanvasSize = UDim2.new(0, 0, 0, 0)
+	page.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	page.Visible = false
+	page.Parent = panel
+	local layout = Instance.new("UIListLayout")
+	layout.Padding = UDim.new(0, 6)
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Parent = page
+	pages[tabId] = page
+
+	tabButtons[tabId] = button(tabBar, {
+		LayoutOrder = index,
+		Size = UDim2.new(0.25, -6, 1, 0),
+		BackgroundColor3 = GREY,
+		Text = L("tab_" .. tabId),
+	}, function()
+		showTab(tabId)
+	end)
+end
+showTab("products")
+
+-- 1 行（左に説明、右にボタン）
+local function makeRow(page, order, buttonColor, onClick)
+	local row = Instance.new("Frame")
+	row.LayoutOrder = order
+	row.Size = UDim2.new(1, -8, 0, 58)
+	row.BackgroundColor3 = Color3.fromRGB(45, 36, 70)
+	row.Parent = page
+	corner(row, 10)
+	local text = label(row, {
+		Position = UDim2.new(0, 10, 0, 4),
+		Size = UDim2.new(0.62, -10, 1, -8),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Text = "",
+	})
+	local b = button(row, {
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -6, 0.5, 0),
+		Size = UDim2.new(0.38, -10, 1, -12),
+		BackgroundColor3 = buttonColor,
+		Text = "",
+	}, onClick)
+	return row, text, b
+end
+
+-- 商品ページ
+local productsPage = pages.products
+local modeRow = Instance.new("Frame")
+modeRow.LayoutOrder = 0
+modeRow.Size = UDim2.new(1, -8, 0, 40)
+modeRow.BackgroundTransparency = 1
+modeRow.Parent = productsPage
+local modeLabel = label(modeRow, { Size = UDim2.new(0.2, 0, 1, 0), Text = L("price_mode") })
+local modeButtons = {}
+for i, mode in ipairs({ "cheap", "normal", "premium" }) do
+	modeButtons[mode] = button(modeRow, {
+		Position = UDim2.new(0.2 + (i - 1) * 0.2, 4, 0, 2),
+		Size = UDim2.new(0.2, -8, 1, -4),
+		BackgroundColor3 = GREY,
+		Text = L("mode_" .. mode),
+	}, function()
+		act("priceMode", mode)
+	end)
+end
+local warehouseLabel = label(modeRow, {
+	Position = UDim2.new(0.8, 0, 0, 0),
+	Size = UDim2.new(0.2, 0, 1, 0),
+	TextColor3 = Color3.fromRGB(200, 200, 220),
+	Text = "",
+})
+
+local productRows = {}
+for index, product in ipairs(ShopConfig.Products) do
+	local row, text, b = makeRow(productsPage, index, GREEN, function()
+		act("buyStock", product.id)
+	end)
+	productRows[index] = { row = row, text = text, button = b }
+end
+local unlockRow, unlockText, unlockButton = makeRow(productsPage, 100, ORANGE, function()
+	act("unlock")
+end)
+
+-- 広告ページ
+local adRows = {}
+for index, ad in ipairs(ShopConfig.Ads) do
+	local _, text, b = makeRow(pages.ads, index, ORANGE, function()
+		act("runAd", ad.id)
+	end)
+	adRows[index] = { text = text, button = b }
+end
+
+-- 強化ページ
+local upgradeRows = {}
+for index, upgradeId in ipairs(ShopConfig.UpgradeOrder) do
+	local _, text, b = makeRow(pages.upgrades, index, GREEN, function()
+		act("upgrade", upgradeId)
+	end)
+	upgradeRows[upgradeId] = { text = text, button = b }
+end
+
+-- 会社ページ
+local franchiseLabel = label(pages.company, {
+	LayoutOrder = 0,
+	Size = UDim2.new(1, -8, 0, 32),
+	TextColor3 = GOLD,
+	Text = "",
+})
+local sellButton = button(pages.company, {
+	LayoutOrder = 1,
+	Size = UDim2.new(1, -8, 0, 90),
+	BackgroundColor3 = PURPLE,
+	Text = "",
+}, function()
+	act("sellCompany")
+end)
+for index, passKey in ipairs(ShopConfig.GamePassOrder) do
+	local pass = ShopConfig.GamePasses[passKey]
+	if pass.id ~= 0 then
+		button(pages.company, {
+			LayoutOrder = 10 + index,
+			Size = UDim2.new(1, -8, 0, 50),
+			BackgroundColor3 = GREEN,
+			Text = L("pass_" .. passKey) .. "  (Robux)",
+		}, function()
+			MarketplaceService:PromptGamePassPurchase(player, pass.id)
+		end)
+	end
+end
+
+---------------------------------------------------------------------
+-- サーバーから届いた状態で画面を更新
+---------------------------------------------------------------------
+local tutorialShown = false
+
+stateRemote.OnClientEvent:Connect(function(state)
+	local stock = state.stock or {}
+	local upgrades = state.upgrades or {}
+	local multiplier = state.multiplier or 1
+	local mode = ShopConfig.PriceModes[state.priceMode] or ShopConfig.PriceModes.normal
+
+	moneyLabel.Text = L("money", money(state.money))
+	statusLabel.Text = L(
+		"status",
+		money(state.pending),
+		string.format("%.1f", state.visitors or 0),
+		string.format("%.1f", state.shipPerSecond or 0),
+		multiplier
+	)
+	shipButton.Text = L("ship", money(state.pending))
+	shipButton.BackgroundColor3 = (state.pending or 0) > 0 and ORANGE or GREY
+
+	-- 商品
+	local total = 0
+	for _, count in pairs(stock) do
+		total = total + count
+	end
+	warehouseLabel.Text = L("warehouse_info", money(total), money(ShopConfig.StockCapacity(upgrades.warehouse or 0)))
+	for modeId, b in pairs(modeButtons) do
+		b.BackgroundColor3 = modeId == state.priceMode and PURPLE or GREY
+	end
+	for index, product in ipairs(ShopConfig.Products) do
+		local rowInfo = productRows[index]
+		rowInfo.row.Visible = index <= state.unlocked
+		local price = math.max(1, math.floor(product.price * mode.priceMultiplier * multiplier))
+		rowInfo.text.Text = L("product_row", L("product_" .. product.id), money(stock[product.id] or 0), money(price))
+		local cost = product.cost * 10
+		rowInfo.button.Text = L("buy_stock", money(cost))
+		rowInfo.button.BackgroundColor3 = state.money >= product.cost and GREEN or GREY
+	end
+	local nextProduct = ShopConfig.Products[state.unlocked + 1]
+	if nextProduct then
+		unlockText.Text = L("product_" .. nextProduct.id)
+		unlockButton.Text = L("unlock_product", "", money(nextProduct.unlock))
+		unlockButton.BackgroundColor3 = state.money >= nextProduct.unlock and ORANGE or GREY
+		unlockRow.Visible = true
+	else
+		unlockText.Text = L("all_unlocked")
+		unlockButton.Visible = false
+	end
+
+	-- 広告
+	for index, ad in ipairs(ShopConfig.Ads) do
+		local rowInfo = adRows[index]
+		rowInfo.text.Text = L("ad_row", L("ad_" .. ad.id), string.format("%.1f", ad.visitors), ad.duration)
+		local remaining = state.ads and state.ads[ad.id]
+		if remaining then
+			rowInfo.button.Text = L("ad_running", remaining)
+			rowInfo.button.BackgroundColor3 = GREY
+		else
+			local cost = ShopConfig.AdCost(ad, state.unlocked)
+			rowInfo.button.Text = L("ad_buy", money(cost))
+			rowInfo.button.BackgroundColor3 = state.money >= cost and ORANGE or GREY
+		end
+	end
+
+	-- 強化
+	for _, upgradeId in ipairs(ShopConfig.UpgradeOrder) do
+		local rowInfo = upgradeRows[upgradeId]
+		local level = upgrades[upgradeId] or 0
+		rowInfo.text.Text = L("upgrade_row", L("upgrade_" .. upgradeId), level, L("upgrade_" .. upgradeId .. "_desc"))
+		if level >= ShopConfig.Upgrades[upgradeId].maxLevel then
+			rowInfo.button.Text = L("upgrade_max")
+			rowInfo.button.BackgroundColor3 = GREY
+		else
+			local cost = ShopConfig.UpgradeCost(upgradeId, level)
+			rowInfo.button.Text = L("upgrade_buy", money(cost))
+			rowInfo.button.BackgroundColor3 = state.money >= cost and GREEN or GREY
+		end
+	end
+
+	-- 会社
+	local franchises = state.franchises or 0
+	franchiseLabel.Text = L("franchise_info", franchises, math.floor(franchises * ShopConfig.FRANCHISE_BONUS * 100))
+	local sellCost = ShopConfig.SellCompanyCost(franchises)
+	sellButton.Text = L("sell_company", math.floor(ShopConfig.FRANCHISE_BONUS * 100), money(sellCost))
+	sellButton.BackgroundColor3 = state.money >= sellCost and PURPLE or GREY
+
+	-- はじめての人に遊び方を出す
+	if not tutorialShown and total == 0 and franchises == 0 then
+		tutorialShown = true
+		showToast(L("tutorial"), Color3.fromRGB(150, 220, 255))
+		panel.Visible = true
+		showTab("products")
+	end
+end)
+
+---------------------------------------------------------------------
+-- 小さい画面では全体を縮める・看板の文字を自分の言語に
+---------------------------------------------------------------------
+local uiScale = Instance.new("UIScale")
+uiScale.Parent = screen
+local function updateScale()
+	local camera = Workspace.CurrentCamera
+	if camera then
+		uiScale.Scale = math.clamp(camera.ViewportSize.Y / 700, 0.5, 1)
+	end
+end
+if Workspace.CurrentCamera then
+	Workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(updateScale)
+end
+updateScale()
+
+local function relabel(object)
+	if object:IsA("TextLabel") and object:GetAttribute("LocaleKey") then
+		object.Text = L(object:GetAttribute("LocaleKey"))
+	end
+end
+for _, object in ipairs(Workspace:GetDescendants()) do
+	relabel(object)
+end
+Workspace.DescendantAdded:Connect(function(object)
+	task.defer(relabel, object)
+end)
+
+screen.Parent = playerGui
+]]></string>
+        </Properties>
+      </Item>
+    </Item>
+  </Item>
+</roblox>
