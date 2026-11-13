@@ -49,7 +49,15 @@ local STRINGS = {
 		pet_cat = "Cat",
 		pet_dragon = "Dragon",
 		pet_unicorn = "Unicorn",
-		pet_phoenix = "Golden Phoenix",
+		pet_phoenix = "Phoenix",
+		golden_pet = "Golden %s",
+		pets_title = "Your Pets",
+		pets_hint = "Tap to see your pets",
+		pet_row = "%s  x%s  (+%s%% each)",
+		fuse_button = "Fuse %s → Golden!",
+		fuse_progress = "Fuse: %s/%s",
+		close = "Close",
+		announce_fuse = "%s fused a %s!",
 		tutorial_shop = "Nice! Buy upgrades in the shop on the left",
 		tutorial_like = "Enjoying the game? Please Like 👍 and Favorite ⭐!",
 
@@ -117,7 +125,15 @@ local STRINGS = {
 		pet_cat = "ねこ",
 		pet_dragon = "ドラゴン",
 		pet_unicorn = "ユニコーン",
-		pet_phoenix = "金のフェニックス",
+		pet_phoenix = "フェニックス",
+		golden_pet = "金色の%s",
+		pets_title = "持っているペット",
+		pets_hint = "タップでペット一覧",
+		pet_row = "%s  x%s  （1匹 +%s%%）",
+		fuse_button = "%s匹で金色に合体！",
+		fuse_progress = "合体: %s/%s",
+		close = "閉じる",
+		announce_fuse = "%s が %s に合体させた！",
 		tutorial_shop = "いいね！ 左のショップでアップグレードを買おう",
 		tutorial_like = "楽しんでる？ よかったら 👍 と ⭐ お気に入りを押してね！",
 
@@ -148,6 +164,15 @@ function Locale.GetLanguage(player)
 		return "ja"
 	end
 	return "en"
+end
+
+-- ペットの名前（金色版にも対応）
+function Locale.PetName(language, petId)
+	local baseId = string.match(petId, "^golden_(.+)$")
+	if baseId then
+		return Locale.Get(language, "golden_pet", Locale.Get(language, "pet_" .. baseId))
+	end
+	return Locale.Get(language, "pet_" .. petId)
 end
 
 function Locale.Get(language, key, ...)

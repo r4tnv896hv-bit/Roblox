@@ -129,6 +129,28 @@ UpgradeConfig.Pets = {
 	phoenix = { rarity = "legendary", bonus = 2.5, color = Color3.fromRGB(255, 190, 40), size = 2.4, neon = true },
 }
 
+-- 金色のペット: 同じペットを FUSE_COUNT 匹で合体すると、ボーナス GOLDEN_MULTIPLIER 倍の金色版になる
+UpgradeConfig.FUSE_COUNT = 5
+UpgradeConfig.GOLDEN_MULTIPLIER = 3
+do
+	local baseIds = {}
+	for petId in pairs(UpgradeConfig.Pets) do
+		table.insert(baseIds, petId)
+	end
+	for _, petId in ipairs(baseIds) do
+		local base = UpgradeConfig.Pets[petId]
+		UpgradeConfig.Pets["golden_" .. petId] = {
+			rarity = base.rarity,
+			bonus = base.bonus * UpgradeConfig.GOLDEN_MULTIPLIER,
+			color = base.color:Lerp(Color3.fromRGB(255, 210, 50), 0.6),
+			size = base.size * 1.15,
+			neon = true,
+			golden = true,
+			base = petId,
+		}
+	end
+end
+
 -- 卵: cost コインで1回。weights は出やすさ（合計に対する割合が確率）
 UpgradeConfig.Eggs = {
 	basic = {

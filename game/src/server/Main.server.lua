@@ -124,6 +124,11 @@ local hatchResult = Instance.new("RemoteEvent")
 hatchResult.Name = "HatchResult"
 hatchResult.Parent = remotes
 
+-- ペットの合体（petId）
+local fuseRemote = Instance.new("RemoteEvent")
+fuseRemote.Name = "FusePet"
+fuseRemote.Parent = remotes
+
 local rebirthRemote = Instance.new("RemoteEvent")
 rebirthRemote.Name = "Rebirth"
 rebirthRemote.Parent = remotes
@@ -247,9 +252,19 @@ end
 
 -- ついてくるペットを属性に書く（クライアントが見た目を作る）
 local function refreshPets(player)
-	local equipped, bonus = UpgradeConfig.EquippedPets(DataStore2("pets", player):Get({}))
+	local owned = DataStore2("pets", player):Get({})
+	local equipped, bonus = UpgradeConfig.EquippedPets(owned)
 	player:SetAttribute("EquippedPets", table.concat(equipped, ","))
 	player:SetAttribute("PetBonus", bonus)
+
+	-- 持っているペットの数（ペット一覧の画面用）"cat=7,dragon=1"
+	local parts = {}
+	for petId, count in pairs(owned) do
+		if UpgradeConfig.Pets[petId] and count > 0 then
+			table.insert(parts, petId .. "=" .. count)
+		end
+	end
+	player:SetAttribute("OwnedPets", table.concat(parts, ","))
 end
 
 local function refreshMultiplier(player)
@@ -867,7 +882,7 @@ local function hatch(player, eggId)
 			UpgradeConfig.Rarities[rarity].color,
 			player.DisplayName,
 			"@rarity_" .. rarity,
-			"@pet_" .. petId
+			"@pet:" .. petId
 		)
 	end
 end
@@ -931,4 +946,35 @@ end
 
 Players.PlayerRemoving:Connect(function(player)
 	lastHatch[player] = nil
+end)
+
+---------------------------------------------------------------------
+-- ペットの合体: 同じペット 5 匹 → 金色のペット 1 匹
+---------------------------------------------------------------------
+fuseRemote.OnServerEvent:Connect(function(player, petId)
+	if not loadedPlayers[player] or type(petId) ~= "string" then
+		return
+	end
+	local def = UpgradeConfig.Pets[petId]
+	if not def or def.golden then
+		return
+	end
+
+	local petsStore = DataStore2("pets", player)
+	local pets = petsStore:Get({})
+	if (pets[petId] or 0) < UpgradeConfig.FUSE_COUNT then
+		return
+	end
+
+	pets[petId] = pets[petId] - UpgradeConfig.FUSE_COUNT
+	if pets[petId] <= 0 then
+		pets[petId] = nil
+	end
+	local goldenId = "golden_" .. petId
+	pets[goldenId] = (pets[goldenId] or 0) + 1
+	petsStore:Set(pets)
+
+	refreshPets(player)
+	refreshMultiplier(player)
+	announce:FireAllClients("announce_fuse", Color3.fromRGB(255, 210, 50), player.DisplayName, "@pet:" .. goldenId)
 end)

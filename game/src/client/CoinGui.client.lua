@@ -318,6 +318,8 @@ local toastCount = 0
 local function localizeArg(arg)
 	if type(arg) == "number" and arg == math.floor(arg) then
 		return formatNumber(arg)
+	elseif type(arg) == "string" and string.sub(arg, 1, 5) == "@pet:" then
+		return Locale.PetName(language, string.sub(arg, 6))
 	elseif type(arg) == "string" and string.sub(arg, 1, 1) == "@" then
 		return L(string.sub(arg, 2))
 	end

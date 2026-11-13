@@ -10,6 +10,7 @@ local Locale = require(ReplicatedStorage:WaitForChild("Locale"))
 
 local remotes = ReplicatedStorage:WaitForChild("CoinClickerRemotes")
 local hatchResult = remotes:WaitForChild("HatchResult")
+local fuseRemote = remotes:WaitForChild("FusePet")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -17,6 +18,10 @@ local language = Locale.GetLanguage(player)
 
 local function L(key, ...)
 	return Locale.Get(language, key, ...)
+end
+
+local function petName(petId)
+	return Locale.PetName(language, petId)
 end
 
 local function formatNumber(n)
@@ -87,7 +92,7 @@ if Workspace.CurrentCamera then
 end
 updateScale()
 
-local petsLabel = Instance.new("TextLabel")
+local petsLabel = Instance.new("TextButton")
 petsLabel.AnchorPoint = Vector2.new(0.5, 1)
 petsLabel.Position = UDim2.new(0.5, 0, 1, -76)
 petsLabel.Size = UDim2.new(0, 460, 0, 30)
@@ -120,7 +125,7 @@ local function updatePetsLabel()
 	end
 	local names = {}
 	for i, petId in ipairs(list) do
-		names[i] = L("pet_" .. petId)
+		names[i] = petName(petId)
 	end
 	petsLabel.Text = L("pets_label", table.concat(names, ", "), percent(player:GetAttribute("PetBonus") or 0))
 end
@@ -167,7 +172,7 @@ hatchResult.OnClientEvent:Connect(function(petId)
 	result.Position = UDim2.new(0, 10, 0.38, 0)
 	result.Size = UDim2.new(1, -20, 0.55, 0)
 	result.BackgroundTransparency = 1
-	result.Text = L("hatch_result", L("rarity_" .. pet.rarity), L("pet_" .. petId), percent(pet.bonus))
+	result.Text = L("hatch_result", L("rarity_" .. pet.rarity), petName(petId), percent(pet.bonus))
 	result.TextColor3 = rarityColor
 	result.TextStrokeTransparency = 0
 	result.TextScaled = true
@@ -182,6 +187,162 @@ hatchResult.OnClientEvent:Connect(function(petId)
 	task.delay(2.5, function()
 		frame:Destroy()
 	end)
+end)
+
+---------------------------------------------------------------------
+-- ペット一覧と合体（画面下のペット表示を押すと開く）
+---------------------------------------------------------------------
+local panel = Instance.new("Frame")
+panel.AnchorPoint = Vector2.new(0.5, 0.5)
+panel.Position = UDim2.new(0.5, 0, 0.5, 0)
+panel.Size = UDim2.new(0, 460, 0, 420)
+panel.BackgroundColor3 = Color3.fromRGB(35, 25, 45)
+panel.BackgroundTransparency = 0.05
+panel.Visible = false
+panel.Parent = screenGui
+
+local panelCorner = Instance.new("UICorner")
+panelCorner.CornerRadius = UDim.new(0, 14)
+panelCorner.Parent = panel
+
+local panelStroke = Instance.new("UIStroke")
+panelStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+panelStroke.Color = Color3.fromRGB(255, 220, 80)
+panelStroke.Thickness = 2
+panelStroke.Parent = panel
+
+local panelTitle = Instance.new("TextLabel")
+panelTitle.Position = UDim2.new(0, 16, 0, 10)
+panelTitle.Size = UDim2.new(1, -120, 0, 36)
+panelTitle.BackgroundTransparency = 1
+panelTitle.Text = L("pets_title")
+panelTitle.TextColor3 = Color3.fromRGB(255, 220, 80)
+panelTitle.TextScaled = true
+panelTitle.TextXAlignment = Enum.TextXAlignment.Left
+panelTitle.Font = Enum.Font.GothamBold
+panelTitle.Parent = panel
+
+local closeButton = Instance.new("TextButton")
+closeButton.AnchorPoint = Vector2.new(1, 0)
+closeButton.Position = UDim2.new(1, -12, 0, 12)
+closeButton.Size = UDim2.new(0, 90, 0, 32)
+closeButton.BackgroundColor3 = Color3.fromRGB(90, 90, 90)
+closeButton.Text = L("close")
+closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeButton.TextScaled = true
+closeButton.Font = Enum.Font.GothamBold
+closeButton.Parent = panel
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 8)
+closeCorner.Parent = closeButton
+
+local list = Instance.new("ScrollingFrame")
+list.Position = UDim2.new(0, 12, 0, 56)
+list.Size = UDim2.new(1, -24, 1, -68)
+list.BackgroundTransparency = 1
+list.BorderSizePixel = 0
+list.ScrollBarThickness = 6
+list.CanvasSize = UDim2.new(0, 0, 0, 0)
+list.AutomaticCanvasSize = Enum.AutomaticSize.Y
+list.Parent = panel
+
+local listLayout = Instance.new("UIListLayout")
+listLayout.Padding = UDim.new(0, 6)
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+listLayout.Parent = list
+
+local function parseOwned()
+	local owned = {}
+	for petId, count in string.gmatch(player:GetAttribute("OwnedPets") or "", "([^,=]+)=(%d+)") do
+		if UpgradeConfig.Pets[petId] then
+			owned[petId] = tonumber(count)
+		end
+	end
+	return owned
+end
+
+local function refreshList()
+	for _, child in ipairs(list:GetChildren()) do
+		if child:IsA("Frame") then
+			child:Destroy()
+		end
+	end
+
+	local owned = parseOwned()
+	local ids = {}
+	for petId in pairs(owned) do
+		table.insert(ids, petId)
+	end
+	table.sort(ids, function(a, b)
+		return UpgradeConfig.Pets[a].bonus > UpgradeConfig.Pets[b].bonus
+	end)
+
+	for order, petId in ipairs(ids) do
+		local def = UpgradeConfig.Pets[petId]
+		local count = owned[petId]
+
+		local row = Instance.new("Frame")
+		row.LayoutOrder = order
+		row.Size = UDim2.new(1, -8, 0, 46)
+		row.BackgroundColor3 = Color3.fromRGB(55, 40, 70)
+		row.Parent = list
+		local rowCorner = Instance.new("UICorner")
+		rowCorner.CornerRadius = UDim.new(0, 8)
+		rowCorner.Parent = row
+
+		local name = Instance.new("TextLabel")
+		name.Position = UDim2.new(0, 10, 0, 0)
+		name.Size = UDim2.new(def.golden and 1 or 0.6, -14, 1, 0)
+		name.BackgroundTransparency = 1
+		name.Text = L("pet_row", petName(petId), formatNumber(count), percent(def.bonus))
+		name.TextColor3 = UpgradeConfig.Rarities[def.rarity].color
+		name.TextScaled = true
+		name.TextXAlignment = Enum.TextXAlignment.Left
+		name.Font = Enum.Font.GothamBold
+		name.Parent = row
+
+		if not def.golden then
+			local canFuse = count >= UpgradeConfig.FUSE_COUNT
+			local fuse = Instance.new("TextButton")
+			fuse.AnchorPoint = Vector2.new(1, 0.5)
+			fuse.Position = UDim2.new(1, -6, 0.5, 0)
+			fuse.Size = UDim2.new(0.4, -10, 0, 36)
+			fuse.BackgroundColor3 = canFuse and Color3.fromRGB(230, 170, 30) or Color3.fromRGB(80, 80, 80)
+			fuse.TextColor3 = Color3.fromRGB(255, 255, 255)
+			fuse.TextScaled = true
+			fuse.Font = Enum.Font.GothamBold
+			if canFuse then
+				fuse.Text = L("fuse_button", formatNumber(UpgradeConfig.FUSE_COUNT))
+			else
+				fuse.Text = L("fuse_progress", formatNumber(count), formatNumber(UpgradeConfig.FUSE_COUNT))
+			end
+			fuse.Parent = row
+			local fuseCorner = Instance.new("UICorner")
+			fuseCorner.CornerRadius = UDim.new(0, 8)
+			fuseCorner.Parent = fuse
+
+			fuse.Activated:Connect(function()
+				if canFuse then
+					fuseRemote:FireServer(petId)
+				end
+			end)
+		end
+	end
+end
+
+petsLabel.Activated:Connect(function()
+	panel.Visible = not panel.Visible
+	if panel.Visible then
+		refreshList()
+	end
+end)
+closeButton.Activated:Connect(function()
+	panel.Visible = false
+end)
+player:GetAttributeChangedSignal("OwnedPets"):Connect(function()
+	if panel.Visible then
+		refreshList()
+	end
 end)
 
 screenGui.Parent = playerGui
@@ -239,7 +400,7 @@ local function makePet(petId)
 	local tagText = Instance.new("TextLabel")
 	tagText.Size = UDim2.new(1, 0, 1, 0)
 	tagText.BackgroundTransparency = 1
-	tagText.Text = L("pet_" .. petId)
+	tagText.Text = petName(petId)
 	tagText.TextColor3 = UpgradeConfig.Rarities[def.rarity].color
 	tagText.TextStrokeTransparency = 0
 	tagText.TextScaled = true
