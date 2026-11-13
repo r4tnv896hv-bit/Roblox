@@ -82,6 +82,10 @@ local STRINGS = {
 		-- 課金アイテム
 		pass_doubleCoins_name = "2x Coins",
 		pass_doubleCoins_desc = "Double coins forever!",
+		pass_luckyEggs_name = "Lucky Eggs",
+		pass_luckyEggs_desc = "2x chance for Rare+ pets",
+		pass_tripleHatch_name = "Triple Hatch",
+		pass_tripleHatch_desc = "Hatch 3 eggs at once",
 		pass_autoClick_name = "Auto Clicker",
 		pass_autoClick_desc = "Clicks 3 times every second",
 		product_smallPack_name = "Coin Pack (S)",
@@ -156,6 +160,10 @@ local STRINGS = {
 
 		pass_doubleCoins_name = "コイン2倍",
 		pass_doubleCoins_desc = "ずっとコインが2倍！",
+		pass_luckyEggs_name = "ラッキー卵",
+		pass_luckyEggs_desc = "レア以上が2倍出やすい",
+		pass_tripleHatch_name = "トリプルハッチ",
+		pass_tripleHatch_desc = "卵を3個まとめて割る",
 		pass_autoClick_name = "オートクリック",
 		pass_autoClick_desc = "毎秒3回、自動でクリック",
 		product_smallPack_name = "コインパック（小）",
@@ -394,10 +402,16 @@ function UpgradeConfig.EquippedPets(ownedPets)
 end
 
 -- 卵の中身を1つ決める（rng は Random）
-function UpgradeConfig.RollEgg(eggId, rng)
-	local weights = UpgradeConfig.Eggs[eggId].weights
+-- lucky が true ならレア以上の出やすさを LUCKY_MULTIPLIER 倍にする
+function UpgradeConfig.RollEgg(eggId, rng, lucky)
+	local weights = {}
 	local total = 0
-	for _, weight in pairs(weights) do
+	for petId, weight in pairs(UpgradeConfig.Eggs[eggId].weights) do
+		local rarity = UpgradeConfig.Rarities[UpgradeConfig.Pets[petId].rarity]
+		if lucky and rarity.order >= UpgradeConfig.Rarities.rare.order then
+			weight = weight * UpgradeConfig.LUCKY_MULTIPLIER
+		end
+		weights[petId] = weight
 		total = total + weight
 	end
 	local roll = rng:NextNumber(0, total)
@@ -422,12 +436,21 @@ UpgradeConfig.GamePasses = {
 		id = 2087840383,
 		price = 99,
 	},
+	luckyEggs = {
+		id = 2089172365,
+		price = 199,
+	},
+	tripleHatch = {
+		id = 2089364357,
+		price = 249,
+	},
 	autoClick = {
 		id = 2088056363,
 		price = 149,
 	},
 }
-UpgradeConfig.GamePassOrder = { "doubleCoins", "autoClick" }
+UpgradeConfig.GamePassOrder = { "doubleCoins", "autoClick", "luckyEggs", "tripleHatch" }
+UpgradeConfig.LUCKY_MULTIPLIER = 2 -- ラッキー卵パス: レア以上が出やすくなる倍率
 UpgradeConfig.AUTO_CLICKS_PER_SECOND = 3
 
 UpgradeConfig.Products = {
@@ -3877,32 +3900,46 @@ local function hatch(player, eggId)
 
 	local egg = UpgradeConfig.Eggs[eggId]
 	local coinStore = DataStore2("coins", player)
-	if coinStore:Get(STARTING_COINS) < egg.cost then
+	local coins = coinStore:Get(STARTING_COINS)
+	if coins < egg.cost then
 		announce:FireClient(player, "announce_need_coins", ANNOUNCE_PINK, egg.cost)
 		return
 	end
-	coinStore:Increment(-egg.cost, STARTING_COINS)
 
-	local petId = UpgradeConfig.RollEgg(eggId, hatchRng)
+	-- トリプルハッチのパスがあり、コインが足りれば 3 個まとめて割る
+	local count = 1
+	if player:GetAttribute("Pass_tripleHatch") and coins >= egg.cost * 3 then
+		count = 3
+	end
+	coinStore:Increment(-egg.cost * count, STARTING_COINS)
+
+	local lucky = player:GetAttribute("Pass_luckyEggs") == true
 	local petsStore = DataStore2("pets", player)
 	local pets = petsStore:Get({})
-	pets[petId] = (pets[petId] or 0) + 1
+	local results = {}
+	for i = 1, count do
+		local petId = UpgradeConfig.RollEgg(eggId, hatchRng, lucky)
+		results[i] = petId
+		pets[petId] = (pets[petId] or 0) + 1
+	end
 	petsStore:Set(pets)
 
 	refreshPets(player)
 	refreshMultiplier(player)
-	hatchResult:FireClient(player, petId)
+	hatchResult:FireClient(player, table.unpack(results))
 
 	-- レア以上は全員にお知らせ
-	local rarity = UpgradeConfig.Pets[petId].rarity
-	if UpgradeConfig.Rarities[rarity].order >= UpgradeConfig.Rarities.rare.order then
-		announce:FireAllClients(
-			"announce_hatch",
-			UpgradeConfig.Rarities[rarity].color,
-			player.DisplayName,
-			"@rarity_" .. rarity,
-			"@pet:" .. petId
-		)
+	for _, petId in ipairs(results) do
+		local rarity = UpgradeConfig.Pets[petId].rarity
+		if UpgradeConfig.Rarities[rarity].order >= UpgradeConfig.Rarities.rare.order then
+			announce:FireAllClients(
+				"announce_hatch",
+				UpgradeConfig.Rarities[rarity].color,
+				player.DisplayName,
+				"@rarity_" .. rarity,
+				"@pet:" .. petId
+			)
+		end
 	end
 end
 
@@ -4447,7 +4484,7 @@ robuxTitle.Parent = robuxShop
 local function makeRobuxButton(order, item, textKey, infoType, onClick)
 	local button = Instance.new("TextButton")
 	button.LayoutOrder = order
-	button.Size = UDim2.new(1, 0, 0, 64)
+	button.Size = UDim2.new(1, 0, 0, 54)
 	button.BackgroundColor3 = ROBUX_COLOR
 	button.TextColor3 = Color3.new(1, 1, 1)
 	button.TextSize = 15
@@ -4798,17 +4835,33 @@ player:GetAttributeChangedSignal("EquippedPets"):Connect(updatePetsLabel)
 player:GetAttributeChangedSignal("PetBonus"):Connect(updatePetsLabel)
 updatePetsLabel()
 
-hatchResult.OnClientEvent:Connect(function(petId)
-	local pet = UpgradeConfig.Pets[petId]
-	if not pet then
+hatchResult.OnClientEvent:Connect(function(...)
+	-- 1 個か 3 個（トリプルハッチ）。一番レアなものの色で枠を出す
+	local petIds = {}
+	local best
+	for _, petId in ipairs({ ... }) do
+		local def = UpgradeConfig.Pets[petId]
+		if def then
+			table.insert(petIds, petId)
+			if not best or UpgradeConfig.Rarities[def.rarity].order > UpgradeConfig.Rarities[UpgradeConfig.Pets[best].rarity].order then
+				best = petId
+			end
+		end
+	end
+	if not best then
 		return
 	end
-	local rarityColor = UpgradeConfig.Rarities[pet.rarity].color
+	local rarityColor = UpgradeConfig.Rarities[UpgradeConfig.Pets[best].rarity].color
+	local lines = {}
+	for i, petId in ipairs(petIds) do
+		local def = UpgradeConfig.Pets[petId]
+		lines[i] = L("hatch_result", L("rarity_" .. def.rarity), petName(petId), percent(def.bonus))
+	end
 
 	local frame = Instance.new("Frame")
 	frame.AnchorPoint = Vector2.new(0.5, 0.5)
 	frame.Position = UDim2.new(0.5, 0, 0.45, 0)
-	frame.Size = UDim2.new(0, 520, 0, 170)
+	frame.Size = UDim2.new(0, 520, 0, 110 + 60 * #petIds)
 	frame.BackgroundColor3 = Color3.fromRGB(30, 20, 45)
 	frame.BackgroundTransparency = 0.1
 	frame.Parent = screenGui
@@ -4824,7 +4877,7 @@ hatchResult.OnClientEvent:Connect(function(petId)
 	stroke.Parent = frame
 
 	local title = Instance.new("TextLabel")
-	title.Size = UDim2.new(1, 0, 0.35, 0)
+	title.Size = UDim2.new(1, 0, 0, 56)
 	title.BackgroundTransparency = 1
 	title.Text = L("hatch_title")
 	title.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -4833,10 +4886,10 @@ hatchResult.OnClientEvent:Connect(function(petId)
 	title.Parent = frame
 
 	local result = Instance.new("TextLabel")
-	result.Position = UDim2.new(0, 10, 0.38, 0)
-	result.Size = UDim2.new(1, -20, 0.55, 0)
+	result.Position = UDim2.new(0, 10, 0, 62)
+	result.Size = UDim2.new(1, -20, 1, -72)
 	result.BackgroundTransparency = 1
-	result.Text = L("hatch_result", L("rarity_" .. pet.rarity), petName(petId), percent(pet.bonus))
+	result.Text = table.concat(lines, "\n")
 	result.TextColor3 = rarityColor
 	result.TextStrokeTransparency = 0
 	result.TextScaled = true

@@ -191,10 +191,16 @@ function UpgradeConfig.EquippedPets(ownedPets)
 end
 
 -- 卵の中身を1つ決める（rng は Random）
-function UpgradeConfig.RollEgg(eggId, rng)
-	local weights = UpgradeConfig.Eggs[eggId].weights
+-- lucky が true ならレア以上の出やすさを LUCKY_MULTIPLIER 倍にする
+function UpgradeConfig.RollEgg(eggId, rng, lucky)
+	local weights = {}
 	local total = 0
-	for _, weight in pairs(weights) do
+	for petId, weight in pairs(UpgradeConfig.Eggs[eggId].weights) do
+		local rarity = UpgradeConfig.Rarities[UpgradeConfig.Pets[petId].rarity]
+		if lucky and rarity.order >= UpgradeConfig.Rarities.rare.order then
+			weight = weight * UpgradeConfig.LUCKY_MULTIPLIER
+		end
+		weights[petId] = weight
 		total = total + weight
 	end
 	local roll = rng:NextNumber(0, total)
@@ -219,12 +225,21 @@ UpgradeConfig.GamePasses = {
 		id = 2087840383,
 		price = 99,
 	},
+	luckyEggs = {
+		id = 2089172365,
+		price = 199,
+	},
+	tripleHatch = {
+		id = 2089364357,
+		price = 249,
+	},
 	autoClick = {
 		id = 2088056363,
 		price = 149,
 	},
 }
-UpgradeConfig.GamePassOrder = { "doubleCoins", "autoClick" }
+UpgradeConfig.GamePassOrder = { "doubleCoins", "autoClick", "luckyEggs", "tripleHatch" }
+UpgradeConfig.LUCKY_MULTIPLIER = 2 -- ラッキー卵パス: レア以上が出やすくなる倍率
 UpgradeConfig.AUTO_CLICKS_PER_SECOND = 3
 
 UpgradeConfig.Products = {

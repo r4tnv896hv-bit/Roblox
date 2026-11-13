@@ -74,6 +74,10 @@ local STRINGS = {
 		-- 課金アイテム
 		pass_doubleCoins_name = "2x Coins",
 		pass_doubleCoins_desc = "Double coins forever!",
+		pass_luckyEggs_name = "Lucky Eggs",
+		pass_luckyEggs_desc = "2x chance for Rare+ pets",
+		pass_tripleHatch_name = "Triple Hatch",
+		pass_tripleHatch_desc = "Hatch 3 eggs at once",
 		pass_autoClick_name = "Auto Clicker",
 		pass_autoClick_desc = "Clicks 3 times every second",
 		product_smallPack_name = "Coin Pack (S)",
@@ -148,6 +152,10 @@ local STRINGS = {
 
 		pass_doubleCoins_name = "コイン2倍",
 		pass_doubleCoins_desc = "ずっとコインが2倍！",
+		pass_luckyEggs_name = "ラッキー卵",
+		pass_luckyEggs_desc = "レア以上が2倍出やすい",
+		pass_tripleHatch_name = "トリプルハッチ",
+		pass_tripleHatch_desc = "卵を3個まとめて割る",
 		pass_autoClick_name = "オートクリック",
 		pass_autoClick_desc = "毎秒3回、自動でクリック",
 		product_smallPack_name = "コインパック（小）",

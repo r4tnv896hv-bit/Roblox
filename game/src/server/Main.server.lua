@@ -858,32 +858,46 @@ local function hatch(player, eggId)
 
 	local egg = UpgradeConfig.Eggs[eggId]
 	local coinStore = DataStore2("coins", player)
-	if coinStore:Get(STARTING_COINS) < egg.cost then
+	local coins = coinStore:Get(STARTING_COINS)
+	if coins < egg.cost then
 		announce:FireClient(player, "announce_need_coins", ANNOUNCE_PINK, egg.cost)
 		return
 	end
-	coinStore:Increment(-egg.cost, STARTING_COINS)
 
-	local petId = UpgradeConfig.RollEgg(eggId, hatchRng)
+	-- トリプルハッチのパスがあり、コインが足りれば 3 個まとめて割る
+	local count = 1
+	if player:GetAttribute("Pass_tripleHatch") and coins >= egg.cost * 3 then
+		count = 3
+	end
+	coinStore:Increment(-egg.cost * count, STARTING_COINS)
+
+	local lucky = player:GetAttribute("Pass_luckyEggs") == true
 	local petsStore = DataStore2("pets", player)
 	local pets = petsStore:Get({})
-	pets[petId] = (pets[petId] or 0) + 1
+	local results = {}
+	for i = 1, count do
+		local petId = UpgradeConfig.RollEgg(eggId, hatchRng, lucky)
+		results[i] = petId
+		pets[petId] = (pets[petId] or 0) + 1
+	end
 	petsStore:Set(pets)
 
 	refreshPets(player)
 	refreshMultiplier(player)
-	hatchResult:FireClient(player, petId)
+	hatchResult:FireClient(player, table.unpack(results))
 
 	-- レア以上は全員にお知らせ
-	local rarity = UpgradeConfig.Pets[petId].rarity
-	if UpgradeConfig.Rarities[rarity].order >= UpgradeConfig.Rarities.rare.order then
-		announce:FireAllClients(
-			"announce_hatch",
-			UpgradeConfig.Rarities[rarity].color,
-			player.DisplayName,
-			"@rarity_" .. rarity,
-			"@pet:" .. petId
-		)
+	for _, petId in ipairs(results) do
+		local rarity = UpgradeConfig.Pets[petId].rarity
+		if UpgradeConfig.Rarities[rarity].order >= UpgradeConfig.Rarities.rare.order then
+			announce:FireAllClients(
+				"announce_hatch",
+				UpgradeConfig.Rarities[rarity].color,
+				player.DisplayName,
+				"@rarity_" .. rarity,
+				"@pet:" .. petId
+			)
+		end
 	end
 end
 

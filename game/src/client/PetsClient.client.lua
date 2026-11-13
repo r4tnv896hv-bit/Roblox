@@ -134,17 +134,33 @@ player:GetAttributeChangedSignal("EquippedPets"):Connect(updatePetsLabel)
 player:GetAttributeChangedSignal("PetBonus"):Connect(updatePetsLabel)
 updatePetsLabel()
 
-hatchResult.OnClientEvent:Connect(function(petId)
-	local pet = UpgradeConfig.Pets[petId]
-	if not pet then
+hatchResult.OnClientEvent:Connect(function(...)
+	-- 1 個か 3 個（トリプルハッチ）。一番レアなものの色で枠を出す
+	local petIds = {}
+	local best
+	for _, petId in ipairs({ ... }) do
+		local def = UpgradeConfig.Pets[petId]
+		if def then
+			table.insert(petIds, petId)
+			if not best or UpgradeConfig.Rarities[def.rarity].order > UpgradeConfig.Rarities[UpgradeConfig.Pets[best].rarity].order then
+				best = petId
+			end
+		end
+	end
+	if not best then
 		return
 	end
-	local rarityColor = UpgradeConfig.Rarities[pet.rarity].color
+	local rarityColor = UpgradeConfig.Rarities[UpgradeConfig.Pets[best].rarity].color
+	local lines = {}
+	for i, petId in ipairs(petIds) do
+		local def = UpgradeConfig.Pets[petId]
+		lines[i] = L("hatch_result", L("rarity_" .. def.rarity), petName(petId), percent(def.bonus))
+	end
 
 	local frame = Instance.new("Frame")
 	frame.AnchorPoint = Vector2.new(0.5, 0.5)
 	frame.Position = UDim2.new(0.5, 0, 0.45, 0)
-	frame.Size = UDim2.new(0, 520, 0, 170)
+	frame.Size = UDim2.new(0, 520, 0, 110 + 60 * #petIds)
 	frame.BackgroundColor3 = Color3.fromRGB(30, 20, 45)
 	frame.BackgroundTransparency = 0.1
 	frame.Parent = screenGui
@@ -160,7 +176,7 @@ hatchResult.OnClientEvent:Connect(function(petId)
 	stroke.Parent = frame
 
 	local title = Instance.new("TextLabel")
-	title.Size = UDim2.new(1, 0, 0.35, 0)
+	title.Size = UDim2.new(1, 0, 0, 56)
 	title.BackgroundTransparency = 1
 	title.Text = L("hatch_title")
 	title.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -169,10 +185,10 @@ hatchResult.OnClientEvent:Connect(function(petId)
 	title.Parent = frame
 
 	local result = Instance.new("TextLabel")
-	result.Position = UDim2.new(0, 10, 0.38, 0)
-	result.Size = UDim2.new(1, -20, 0.55, 0)
+	result.Position = UDim2.new(0, 10, 0, 62)
+	result.Size = UDim2.new(1, -20, 1, -72)
 	result.BackgroundTransparency = 1
-	result.Text = L("hatch_result", L("rarity_" .. pet.rarity), petName(petId), percent(pet.bonus))
+	result.Text = table.concat(lines, "\n")
 	result.TextColor3 = rarityColor
 	result.TextStrokeTransparency = 0
 	result.TextScaled = true

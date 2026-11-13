@@ -422,7 +422,7 @@ robuxTitle.Parent = robuxShop
 local function makeRobuxButton(order, item, textKey, infoType, onClick)
 	local button = Instance.new("TextButton")
 	button.LayoutOrder = order
-	button.Size = UDim2.new(1, 0, 0, 64)
+	button.Size = UDim2.new(1, 0, 0, 54)
 	button.BackgroundColor3 = ROBUX_COLOR
 	button.TextColor3 = Color3.new(1, 1, 1)
 	button.TextSize = 15
