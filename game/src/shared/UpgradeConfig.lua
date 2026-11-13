@@ -69,6 +69,18 @@ UpgradeConfig.REBIRTH_BONUS = 0.5 -- 転生1回ごとに倍率 +0.5
 UpgradeConfig.FRIEND_BONUS = 0.2 -- 同じサーバーのフレンド1人ごとに +20%
 UpgradeConfig.MAX_FRIENDS_COUNTED = 5
 
+-- オフライン報酬: いない間も自動コインの一部がたまる
+UpgradeConfig.OFFLINE_RATE = 0.5 -- 自動コインの 50%
+UpgradeConfig.OFFLINE_MAX_SECONDS = 8 * 60 * 60 -- 最大 8 時間ぶん
+UpgradeConfig.OFFLINE_MIN_SECONDS = 60
+
+-- プレイ時間ボーナス: 遊び続けると 10 分ごとにプレゼント
+UpgradeConfig.PLAYTIME_GIFT_SECONDS = 10 * 60
+
+function UpgradeConfig.PlaytimeGift(perClick, perSecond, multiplier)
+	return math.floor(math.max(200, perSecond * 120 + perClick * 60) * multiplier)
+end
+
 UpgradeConfig.DAILY_BASE_REWARD = 100
 UpgradeConfig.DAILY_MAX_STREAK = 7
 

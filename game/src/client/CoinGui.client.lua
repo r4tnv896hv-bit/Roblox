@@ -324,12 +324,17 @@ local function localizeArg(arg)
 	return arg
 end
 
+local showToast -- 下で中身を決める
+
 announceRemote.OnClientEvent:Connect(function(key, color, ...)
 	local args = { ... }
 	for i = 1, select("#", ...) do
 		args[i] = localizeArg(args[i])
 	end
-	local text = L(key, table.unpack(args, 1, select("#", ...)))
+	showToast(L(key, table.unpack(args, 1, select("#", ...))), color)
+end)
+
+function showToast(text, color)
 	toastCount = toastCount + 1
 
 	local toast = Instance.new("TextLabel")
@@ -370,7 +375,7 @@ announceRemote.OnClientEvent:Connect(function(key, color, ...)
 			fade:Play()
 		end
 	end)
-end)
+end
 
 ---------------------------------------------------------------------
 -- 右: Robux ショップ（ID を設定したアイテムだけ出す）
@@ -567,7 +572,60 @@ local function showPopup(amount, isCrit)
 	fade:Play()
 end
 
+---------------------------------------------------------------------
+-- はじめての人向けのガイド
+---------------------------------------------------------------------
+local isNewPlayer = coins.Value < 10 and rebirths.Value == 0 and clickLevel.Value == 0
+local tutorialArrow
+local clicksSeen = 0
+
+if isNewPlayer then
+	tutorialArrow = Instance.new("BillboardGui")
+	tutorialArrow.Name = "TutorialArrow"
+	tutorialArrow.Adornee = coinButton
+	tutorialArrow.Size = UDim2.new(0, 260, 0, 90)
+	tutorialArrow.StudsOffset = Vector3.new(0, 8, 0)
+	tutorialArrow.AlwaysOnTop = true
+
+	local arrowLabel = Instance.new("TextLabel")
+	arrowLabel.Size = UDim2.new(1, 0, 1, 0)
+	arrowLabel.BackgroundTransparency = 1
+	arrowLabel.Text = L("tutorial_click") .. "\n▼"
+	arrowLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	arrowLabel.TextStrokeTransparency = 0
+	arrowLabel.TextScaled = true
+	arrowLabel.Font = Enum.Font.GothamBlack
+	arrowLabel.Parent = tutorialArrow
+	tutorialArrow.Parent = playerGui
+
+	-- ぴょこぴょこ上下に動かして目立たせる
+	TweenService:Create(
+		tutorialArrow,
+		TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+		{ StudsOffset = Vector3.new(0, 9.5, 0) }
+	):Play()
+
+	-- 10 コインたまったらショップを案内（1 回だけ）
+	local shopHintShown = false
+	coins.Changed:Connect(function()
+		if not shopHintShown and coins.Value >= 10 and clickLevel.Value == 0 then
+			shopHintShown = true
+			showToast(L("tutorial_shop"), GOLD)
+		end
+	end)
+end
+
+-- 8 分遊んだら「いいね・お気に入り」をお願いする（1 回だけ）
+task.delay(8 * 60, function()
+	showToast(L("tutorial_like"), Color3.fromRGB(255, 130, 200))
+end)
+
 coinPopup.OnClientEvent:Connect(function(amount, isCrit)
+	clicksSeen = clicksSeen + 1
+	if tutorialArrow and clicksSeen >= 5 then
+		tutorialArrow:Destroy()
+		tutorialArrow = nil
+	end
 	playPress()
 	showPopup(amount, isCrit)
 end)

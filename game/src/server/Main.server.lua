@@ -100,7 +100,7 @@ local STARTING_COINS = 0
 local CLICK_COOLDOWN = 0.1 -- 連打ツール対策（秒）
 
 -- 使うキーは必ず Combine する
-DataStore2.Combine("DATA", "coins", "rebirths", "lastDailyDay", "dailyStreak", "purchaseHistory")
+DataStore2.Combine("DATA", "coins", "rebirths", "lastDailyDay", "dailyStreak", "purchaseHistory", "lastSeen")
 for _, upgradeId in ipairs(UpgradeConfig.Order) do
 	DataStore2.Combine("DATA", UpgradeConfig.Upgrades[upgradeId].key)
 end
@@ -322,6 +322,44 @@ local function checkGamePasses(player)
 	end
 end
 
+-- 今の「毎秒のコイン」（自動コイン・工場・オートクリック、倍率込み）
+local function getPerSecond(player)
+	local perSecond = UpgradeConfig.CoinsPerSecond(
+		DataStore2("autoLevel", player):Get(0),
+		DataStore2("factoryLevel", player):Get(0)
+	)
+	if player:GetAttribute("Pass_autoClick") then
+		perSecond = perSecond
+			+ UpgradeConfig.CoinsPerClick(DataStore2("clickLevel", player):Get(0)) * UpgradeConfig.AUTO_CLICKS_PER_SECOND
+	end
+	return math.floor(perSecond * getMultiplier(player))
+end
+
+---------------------------------------------------------------------
+-- オフライン報酬: いない間も自動コインの一部がたまる
+---------------------------------------------------------------------
+local function giveOfflineEarnings(player)
+	local lastSeenStore = DataStore2("lastSeen", player)
+	local lastSeen = lastSeenStore:Get(0)
+	local now = os.time()
+	lastSeenStore:Set(now)
+
+	if lastSeen <= 0 then
+		return
+	end
+	local away = math.min(now - lastSeen, UpgradeConfig.OFFLINE_MAX_SECONDS)
+	if away < UpgradeConfig.OFFLINE_MIN_SECONDS then
+		return
+	end
+
+	local reward = math.floor(getPerSecond(player) * away * UpgradeConfig.OFFLINE_RATE)
+	if reward <= 0 then
+		return
+	end
+	DataStore2("coins", player):Increment(reward, STARTING_COINS)
+	announce:FireClient(player, "announce_offline", ANNOUNCE_GREEN, reward, math.floor(away / 60))
+end
+
 function onPlayerLoaded(player)
 	player:SetAttribute("FriendCount", 0)
 	checkGamePasses(player)
@@ -332,6 +370,7 @@ function onPlayerLoaded(player)
 	task.delay(4, function()
 		if player.Parent and loadedPlayers[player] then
 			giveDailyReward(player)
+			giveOfflineEarnings(player)
 		end
 	end)
 end
@@ -410,29 +449,52 @@ end)
 ---------------------------------------------------------------------
 -- 自動コイン（毎秒）
 ---------------------------------------------------------------------
+local secondsPlayed = {}
+
 task.spawn(function()
 	while true do
 		task.wait(1)
 		for player in pairs(loadedPlayers) do
-			local perSecond = UpgradeConfig.CoinsPerSecond(
-				DataStore2("autoLevel", player):Get(0),
-				DataStore2("factoryLevel", player):Get(0)
-			)
-			if player:GetAttribute("Pass_autoClick") then
-				perSecond = perSecond
-					+ UpgradeConfig.CoinsPerClick(DataStore2("clickLevel", player):Get(0)) * UpgradeConfig.AUTO_CLICKS_PER_SECOND
-			end
-			perSecond = math.floor(perSecond * getMultiplier(player))
+			local perSecond = getPerSecond(player)
 			if perSecond > 0 then
 				DataStore2("coins", player):Increment(perSecond, STARTING_COINS)
+			end
+
+			local played = (secondsPlayed[player] or 0) + 1
+			secondsPlayed[player] = played
+
+			-- 最後にいた時刻（オフライン報酬用）を 30 秒ごとに記録
+			if played % 30 == 0 then
+				DataStore2("lastSeen", player):Set(os.time())
+			end
+
+			-- プレイ時間ボーナス
+			if played % UpgradeConfig.PLAYTIME_GIFT_SECONDS == 0 then
+				local gift = UpgradeConfig.PlaytimeGift(
+					UpgradeConfig.CoinsPerClick(DataStore2("clickLevel", player):Get(0)),
+					perSecond,
+					getMultiplier(player)
+				)
+				DataStore2("coins", player):Increment(gift, STARTING_COINS)
+				announce:FireClient(
+					player,
+					"announce_playtime",
+					ANNOUNCE_GREEN,
+					math.floor(played / 60),
+					gift
+				)
 			end
 		end
 	end
 end)
 
 Players.PlayerRemoving:Connect(function(player)
+	if loadedPlayers[player] then
+		DataStore2("lastSeen", player):Set(os.time())
+	end
 	loadedPlayers[player] = nil
 	lastClick[player] = nil
+	secondsPlayed[player] = nil
 	updateFriendBonus()
 end)
 

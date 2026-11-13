@@ -27,6 +27,11 @@ local STRINGS = {
 		announce_golden_got = "%s grabbed the Golden Coin! +%s",
 		announce_pass = "%s got %s!",
 		announce_pack = "%s bought %s: +%s coins!",
+		announce_offline = "Welcome back! You earned +%s coins while away (%s min)",
+		announce_playtime = "Thanks for playing %s minutes! Gift: +%s coins",
+		tutorial_click = "CLICK THE COIN!",
+		tutorial_shop = "Nice! Buy upgrades in the shop on the left",
+		tutorial_like = "Enjoying the game? Please Like 👍 and Favorite ⭐!",
 
 		-- アップグレード
 		upgrade_click_name = "Click Power",
@@ -70,6 +75,11 @@ local STRINGS = {
 		announce_golden_got = "%s がゴールデンコインをゲット！ +%s",
 		announce_pass = "%s が「%s」をゲット！",
 		announce_pack = "%s が%sで +%s コイン！",
+		announce_offline = "おかえり！ いない間に +%s コインたまったよ（%s分）",
+		announce_playtime = "%s分遊んでくれてありがとう！ プレゼント +%s コイン",
+		tutorial_click = "コインをクリック！",
+		tutorial_shop = "いいね！ 左のショップでアップグレードを買おう",
+		tutorial_like = "楽しんでる？ よかったら 👍 と ⭐ お気に入りを押してね！",
 
 		upgrade_click_name = "クリック強化",
 		upgrade_click_desc = "1クリックのコイン +1",
