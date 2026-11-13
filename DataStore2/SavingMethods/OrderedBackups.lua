@@ -50,7 +50,7 @@ function OrderedBackups:Set(value)
 		resolve()
 	end):andThen(function()
 		return Promise.promisify(function()
-			self.orderedDataStore:SetAsync(key, key, { self.dataStore2.UserId })
+			self.orderedDataStore:SetAsync(key, key) -- OrderedDataStore は UserIds を受け付けない
 		end)()
 	end):andThen(function()
 		self.mostRecentKey = key
