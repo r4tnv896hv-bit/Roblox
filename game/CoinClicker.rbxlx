@@ -115,13 +115,13 @@ end
 ---------------------------------------------------------------------
 UpgradeConfig.GamePasses = {
 	doubleCoins = {
-		id = 0,
+		id = 2087840383,
 		name = "コイン2倍",
 		description = "ずっとコインが2倍！",
 		price = 99,
 	},
 	autoClick = {
-		id = 0,
+		id = 2088056363,
 		name = "オートクリック",
 		description = "毎秒3回、自動でクリック",
 		price = 149,
@@ -132,7 +132,7 @@ UpgradeConfig.AUTO_CLICKS_PER_SECOND = 3
 
 UpgradeConfig.Products = {
 	smallPack = {
-		id = 0,
+		id = 3730798651,
 		name = "コインパック（小）",
 		description = "10分ぶんのコインをすぐゲット",
 		price = 25,
@@ -140,7 +140,7 @@ UpgradeConfig.Products = {
 		minimum = 1000,
 	},
 	bigPack = {
-		id = 0,
+		id = 3730798682,
 		name = "コインパック（大）",
 		description = "1時間ぶんのコインをすぐゲット",
 		price = 99,
