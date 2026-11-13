@@ -43,6 +43,16 @@
 					"Value": true
 				}
 			}
+		},
+		"Lighting": {
+			"$className": "Lighting",
+			"$properties": {
+				"Technology": "Future",
+				"GlobalShadows": true,
+				"EnvironmentDiffuseScale": 1.0,
+				"EnvironmentSpecularScale": 1.0,
+				"ShadowSoftness": 0.15
+			}
 		}
 	}
 }

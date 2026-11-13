@@ -1049,8 +1049,9 @@ for _ = 1, 24 do
 	crystal.CFrame = CFrame.new(math.cos(angle) * radius, SKY_Y + 2 + height / 2, math.sin(angle) * radius)
 		* CFrame.Angles(crystalRng:NextNumber(-0.3, 0.3), crystalRng:NextNumber(0, math.pi), crystalRng:NextNumber(-0.3, 0.3))
 	crystal.Color = Color3.fromRGB(120, 220, 255)
-	crystal.Material = Enum.Material.Neon
-	crystal.Transparency = 0.2
+	crystal.Material = Enum.Material.Glass
+	crystal.Transparency = 0.35
+	crystal.Reflectance = 0.2
 	crystal.Parent = Workspace
 end
 
