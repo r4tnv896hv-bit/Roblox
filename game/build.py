@@ -45,7 +45,8 @@ def main():
     server = item(
         "ServerScriptService", "ServerScriptService",
         children=module_tree(os.path.join(ROOT, "DataStore2"), "DataStore2")
-        + item("Script", "Main", read(os.path.join(ROOT, "game/src/server/Main.server.lua"))),
+        + item("Script", "Main", read(os.path.join(ROOT, "game/src/server/Main.server.lua")))
+        + item("Script", "Decor", read(os.path.join(ROOT, "game/src/server/Decor.server.lua"))),
     )
     starter = item(
         "StarterPlayer", "StarterPlayer",

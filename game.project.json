@@ -9,6 +9,9 @@
 			},
 			"Main": {
 				"$path": "game/src/server/Main.server.lua"
+			},
+			"Decor": {
+				"$path": "game/src/server/Decor.server.lua"
 			}
 		},
 		"StarterPlayer": {

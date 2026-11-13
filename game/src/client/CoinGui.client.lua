@@ -16,7 +16,7 @@ local upgradesFolder = player:WaitForChild("Upgrades")
 local coins = player:WaitForChild("leaderstats"):WaitForChild("Coins")
 
 local GOLD = Color3.fromRGB(255, 220, 80)
-local PANEL = Color3.fromRGB(30, 30, 30)
+local PANEL = Color3.fromRGB(35, 25, 45)
 local CAN_BUY = Color3.fromRGB(46, 160, 67)
 local CANNOT_BUY = Color3.fromRGB(80, 80, 80)
 
@@ -28,6 +28,23 @@ local function formatNumber(n)
 		formatted = formatted:sub(2)
 	end
 	return formatted
+end
+
+-- 枠線（文字ではなく四角の縁に付ける）
+local function addStroke(parent, color, thickness)
+	local stroke = Instance.new("UIStroke")
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	stroke.Color = color
+	stroke.Thickness = thickness
+	stroke.Parent = parent
+end
+
+-- 上が明るく下が少し暗いグラデーション（ボタンの色に重なる）
+local function addShine(parent)
+	local gradient = Instance.new("UIGradient")
+	gradient.Rotation = 90
+	gradient.Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(190, 190, 190))
+	gradient.Parent = parent
 end
 
 local function addCorner(parent, radius)
@@ -54,6 +71,7 @@ coinLabel.TextScaled = true
 coinLabel.Font = Enum.Font.GothamBold
 coinLabel.Parent = screenGui
 addCorner(coinLabel, 12)
+addStroke(coinLabel, GOLD, 2)
 
 local rateLabel = Instance.new("TextLabel")
 rateLabel.AnchorPoint = Vector2.new(0.5, 0)
@@ -100,6 +118,7 @@ shop.BackgroundColor3 = PANEL
 shop.BackgroundTransparency = 0.2
 shop.Parent = screenGui
 addCorner(shop, 12)
+addStroke(shop, GOLD, 2)
 
 local padding = Instance.new("UIPadding")
 padding.PaddingTop = UDim.new(0, 10)
@@ -137,6 +156,8 @@ for index, upgradeId in ipairs(UpgradeConfig.Order) do
 	button.Font = Enum.Font.GothamMedium
 	button.Parent = shop
 	addCorner(button, 8)
+	addStroke(button, Color3.fromRGB(255, 255, 255), 1)
+	addShine(button)
 
 	local function update()
 		local level = levelValue.Value
