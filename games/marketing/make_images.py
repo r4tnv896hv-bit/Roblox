@@ -41,7 +41,36 @@ def draw_lucky(img, cx, cy, s):
     text(d, (int(cx + s * 0.5), int(cy + s * 0.35)), "?", int(s * 0.9), (255, 255, 255), stroke=(140, 80, 0))
 
 
+def draw_shredder(img, cx, cy, s):
+    d = ImageDraw.Draw(img)
+    # 札束が上から落ちてくる
+    for i, (dx, dy, ang) in enumerate([(-0.5, -1.25, -12), (0.15, -1.45, 8), (0.55, -1.1, 20)]):
+        x, y = cx + s * dx, cy + s * dy
+        w, h = s * 0.55, s * 0.26
+        pts = []
+        for px, py in [(-w, -h), (w, -h), (w, h), (-w, h)]:
+            a = math.radians(ang)
+            pts.append((x + px * math.cos(a) - py * math.sin(a), y + px * math.sin(a) + py * math.cos(a)))
+        d.polygon(pts, fill=(110, 200, 110), outline=(40, 110, 40))
+        text(d, (int(x), int(y)), "$", int(s * 0.28), (240, 255, 240), stroke=(40, 110, 40), stroke_width=4)
+    # シュレッダー本体
+    d.rounded_rectangle([cx - s * 0.9, cy - s * 0.55, cx + s * 0.9, cy + s * 0.9], int(s * 0.1), fill=(55, 60, 75), outline=(25, 25, 35), width=8)
+    d.rectangle([cx - s * 0.95, cy - s * 0.7, cx + s * 0.95, cy - s * 0.5], fill=(255, 170, 30))
+    for i in range(-3, 4):
+        x = cx + i * s * 0.22
+        d.polygon([(x - s * 0.08, cy - s * 0.5), (x + s * 0.08, cy - s * 0.5), (x, cy - s * 0.32)], fill=(255, 70, 70))
+    # 細切れのお札
+    for i in range(9):
+        x = cx - s * 0.6 + i * s * 0.15
+        d.rectangle([x, cy + s * 0.92, x + s * 0.06, cy + s * 1.25], fill=(110, 200, 110))
+
+
 GAMES = {
+    "shred": {
+        "colors": ((40, 170, 90), (10, 50, 30)), "motif": draw_shredder,
+        "title": "SHRED A", "subtitle": "BILLION", "tag": "+$140,000,000!",
+        "lines": ["Throw cash, gold & vaults in!", "Upgrade your shredder", "Team up to wreck the money truck"],
+    },
     "shop": {
         "colors": ((120, 60, 230), (30, 15, 80)), "motif": draw_box,
         "title": "ONLINE SHOP", "subtitle": "TYCOON", "tag": "+$22 NEW ORDER!",
