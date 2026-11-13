@@ -100,7 +100,7 @@ local STARTING_COINS = 0
 local CLICK_COOLDOWN = 0.1 -- 連打ツール対策（秒）
 
 -- 使うキーは必ず Combine する
-DataStore2.Combine("DATA", "coins", "rebirths", "lastDailyDay", "dailyStreak", "purchaseHistory", "lastSeen")
+DataStore2.Combine("DATA", "coins", "rebirths", "lastDailyDay", "dailyStreak", "purchaseHistory", "lastSeen", "pets")
 for _, upgradeId in ipairs(UpgradeConfig.Order) do
 	DataStore2.Combine("DATA", UpgradeConfig.Upgrades[upgradeId].key)
 end
@@ -118,6 +118,11 @@ buyUpgrade.Parent = remotes
 local coinPopup = Instance.new("RemoteEvent")
 coinPopup.Name = "CoinPopup"
 coinPopup.Parent = remotes
+
+-- 卵を割った結果をその人に知らせる（petId）
+local hatchResult = Instance.new("RemoteEvent")
+hatchResult.Name = "HatchResult"
+hatchResult.Parent = remotes
 
 local rebirthRemote = Instance.new("RemoteEvent")
 rebirthRemote.Name = "Rebirth"
@@ -235,8 +240,16 @@ local function getMultiplier(player)
 	return UpgradeConfig.Multiplier(
 		DataStore2("rebirths", player):Get(0),
 		player:GetAttribute("FriendCount") or 0,
-		player:GetAttribute("Pass_doubleCoins") == true
+		player:GetAttribute("Pass_doubleCoins") == true,
+		player:GetAttribute("PetBonus") or 0
 	)
+end
+
+-- ついてくるペットを属性に書く（クライアントが見た目を作る）
+local function refreshPets(player)
+	local equipped, bonus = UpgradeConfig.EquippedPets(DataStore2("pets", player):Get({}))
+	player:SetAttribute("EquippedPets", table.concat(equipped, ","))
+	player:SetAttribute("PetBonus", bonus)
 end
 
 local function refreshMultiplier(player)
@@ -363,6 +376,7 @@ end
 function onPlayerLoaded(player)
 	player:SetAttribute("FriendCount", 0)
 	checkGamePasses(player)
+	refreshPets(player)
 	refreshMultiplier(player)
 	updateFriendBonus()
 
@@ -808,3 +822,113 @@ MarketplaceService.ProcessReceipt = function(receipt)
 	announce:FireAllClients("announce_pack", ANNOUNCE_GOLD, player.DisplayName, "@product_" .. productKey .. "_name", reward)
 	return Enum.ProductPurchaseDecision.PurchaseGranted
 end
+
+
+---------------------------------------------------------------------
+-- ペットの卵: 台の上の卵に近づいて E キー（スマホはタップ）で割る
+---------------------------------------------------------------------
+local hatchRng = Random.new()
+local lastHatch = {}
+local HATCH_COOLDOWN = 1
+
+local function hatch(player, eggId)
+	if not loadedPlayers[player] then
+		return
+	end
+	local now = tick()
+	if lastHatch[player] and now - lastHatch[player] < HATCH_COOLDOWN then
+		return
+	end
+	lastHatch[player] = now
+
+	local egg = UpgradeConfig.Eggs[eggId]
+	local coinStore = DataStore2("coins", player)
+	if coinStore:Get(STARTING_COINS) < egg.cost then
+		announce:FireClient(player, "announce_need_coins", ANNOUNCE_PINK, egg.cost)
+		return
+	end
+	coinStore:Increment(-egg.cost, STARTING_COINS)
+
+	local petId = UpgradeConfig.RollEgg(eggId, hatchRng)
+	local petsStore = DataStore2("pets", player)
+	local pets = petsStore:Get({})
+	pets[petId] = (pets[petId] or 0) + 1
+	petsStore:Set(pets)
+
+	refreshPets(player)
+	refreshMultiplier(player)
+	hatchResult:FireClient(player, petId)
+
+	-- レア以上は全員にお知らせ
+	local rarity = UpgradeConfig.Pets[petId].rarity
+	if UpgradeConfig.Rarities[rarity].order >= UpgradeConfig.Rarities.rare.order then
+		announce:FireAllClients(
+			"announce_hatch",
+			UpgradeConfig.Rarities[rarity].color,
+			player.DisplayName,
+			"@rarity_" .. rarity,
+			"@pet_" .. petId
+		)
+	end
+end
+
+for _, eggId in ipairs(UpgradeConfig.EggOrder) do
+	local egg = UpgradeConfig.Eggs[eggId]
+
+	local stand = Instance.new("Part")
+	stand.Name = "EggStand"
+	stand.Shape = Enum.PartType.Cylinder
+	stand.Anchored = true
+	stand.Size = Vector3.new(1.5, 7, 7)
+	stand.CFrame = CFrame.new(egg.position + Vector3.new(0, 0.75, 0)) * CFrame.Angles(0, 0, math.rad(90))
+	stand.Color = Color3.fromRGB(90, 60, 130)
+	stand.Material = Enum.Material.SmoothPlastic
+	stand.Parent = Workspace
+
+	local eggPart = Instance.new("Part")
+	eggPart.Name = "Egg"
+	eggPart:SetAttribute("EggId", eggId)
+	eggPart.Anchored = true
+	eggPart.Size = Vector3.new(4, 5, 4)
+	eggPart.Position = egg.position + Vector3.new(0, 4, 0)
+	eggPart.Color = egg.color
+	eggPart.Material = eggId == "golden" and Enum.Material.Neon or Enum.Material.SmoothPlastic
+	eggPart.Parent = Workspace
+
+	local mesh = Instance.new("SpecialMesh")
+	mesh.MeshType = Enum.MeshType.Sphere
+	mesh.Parent = eggPart
+
+	local label = Instance.new("BillboardGui")
+	label.Name = "EggLabel"
+	label.Size = UDim2.new(0, 220, 0, 60)
+	label.StudsOffset = Vector3.new(0, 4.5, 0)
+	label.AlwaysOnTop = true
+	label.Parent = eggPart
+
+	local labelText = Instance.new("TextLabel")
+	labelText.Size = UDim2.new(1, 0, 1, 0)
+	labelText.BackgroundTransparency = 1
+	labelText.Text = string.format("%s Egg\n%d coins", eggId == "golden" and "Golden" or "Basic", egg.cost)
+	labelText.TextColor3 = egg.color
+	labelText.TextStrokeTransparency = 0
+	labelText.TextScaled = true
+	labelText.Font = Enum.Font.GothamBlack
+	labelText.Parent = label
+
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.ActionText = "Hatch"
+	prompt.ObjectText = eggId == "golden" and "Golden Egg" or "Basic Egg"
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = 12
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = eggPart
+
+	prompt.Triggered:Connect(function(player)
+		hatch(player, eggId)
+	end)
+end
+
+Players.PlayerRemoving:Connect(function(player)
+	lastHatch[player] = nil
+end)

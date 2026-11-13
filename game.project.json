@@ -20,6 +20,9 @@
 				"$className": "StarterPlayerScripts",
 				"CoinGui": {
 					"$path": "game/src/client/CoinGui.client.lua"
+				},
+				"PetsClient": {
+					"$path": "game/src/client/PetsClient.client.lua"
 				}
 			}
 		},

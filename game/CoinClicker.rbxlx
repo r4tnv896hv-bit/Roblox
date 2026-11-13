@@ -38,6 +38,26 @@ local STRINGS = {
 		announce_offline = "Welcome back! You earned +%s coins while away (%s min)",
 		announce_playtime = "Thanks for playing %s minutes! Gift: +%s coins",
 		tutorial_click = "CLICK THE COIN!",
+		announce_need_coins = "You need %s coins!",
+		announce_hatch = "%s hatched a %s %s!",
+		hatch_title = "You hatched...",
+		hatch_result = "%s %s  (+%s%% coins)",
+		pets_label = "Pets: %s  (+%s%% coins)",
+		pets_none = "No pets yet - hatch an egg!",
+		egg_basic = "Basic Egg\n%s coins",
+		egg_golden = "Golden Egg\n%s coins",
+		egg_action = "Hatch",
+		rarity_common = "Common",
+		rarity_uncommon = "Uncommon",
+		rarity_rare = "RARE",
+		rarity_epic = "EPIC",
+		rarity_legendary = "LEGENDARY",
+		pet_slime = "Slime",
+		pet_bunny = "Bunny",
+		pet_cat = "Cat",
+		pet_dragon = "Dragon",
+		pet_unicorn = "Unicorn",
+		pet_phoenix = "Golden Phoenix",
 		tutorial_shop = "Nice! Buy upgrades in the shop on the left",
 		tutorial_like = "Enjoying the game? Please Like 👍 and Favorite ⭐!",
 
@@ -86,6 +106,26 @@ local STRINGS = {
 		announce_offline = "おかえり！ いない間に +%s コインたまったよ（%s分）",
 		announce_playtime = "%s分遊んでくれてありがとう！ プレゼント +%s コイン",
 		tutorial_click = "コインをクリック！",
+		announce_need_coins = "コインが %s 必要です！",
+		announce_hatch = "%s が %s の %s をゲット！",
+		hatch_title = "卵から出てきたのは…",
+		hatch_result = "%s %s  （コイン +%s%%）",
+		pets_label = "ペット: %s  （コイン +%s%%）",
+		pets_none = "ペットなし - 卵を割ってみよう！",
+		egg_basic = "ふつうの卵\n%s コイン",
+		egg_golden = "金の卵\n%s コイン",
+		egg_action = "割る",
+		rarity_common = "コモン",
+		rarity_uncommon = "アンコモン",
+		rarity_rare = "レア",
+		rarity_epic = "エピック",
+		rarity_legendary = "レジェンド",
+		pet_slime = "スライム",
+		pet_bunny = "うさぎ",
+		pet_cat = "ねこ",
+		pet_dragon = "ドラゴン",
+		pet_unicorn = "ユニコーン",
+		pet_phoenix = "金のフェニックス",
 		tutorial_shop = "いいね！ 左のショップでアップグレードを買おう",
 		tutorial_like = "楽しんでる？ よかったら 👍 と ⭐ お気に入りを押してね！",
 
@@ -226,10 +266,12 @@ function UpgradeConfig.RebirthCost(rebirths)
 	return math.floor(UpgradeConfig.REBIRTH_BASE_COST * UpgradeConfig.REBIRTH_COST_GROWTH ^ rebirths)
 end
 
--- コインの倍率（転生 × フレンド × コイン2倍パス）
-function UpgradeConfig.Multiplier(rebirths, friendCount, hasDoubleCoins)
+-- コインの倍率（転生 × フレンド × ペット × コイン2倍パス）
+function UpgradeConfig.Multiplier(rebirths, friendCount, hasDoubleCoins, petBonus)
 	local friends = math.min(friendCount, UpgradeConfig.MAX_FRIENDS_COUNTED)
-	local multiplier = (1 + rebirths * UpgradeConfig.REBIRTH_BONUS) * (1 + friends * UpgradeConfig.FRIEND_BONUS)
+	local multiplier = (1 + rebirths * UpgradeConfig.REBIRTH_BONUS)
+		* (1 + friends * UpgradeConfig.FRIEND_BONUS)
+		* (1 + (petBonus or 0))
 	if hasDoubleCoins then
 		multiplier = multiplier * 2
 	end
@@ -240,6 +282,87 @@ end
 function UpgradeConfig.DailyReward(streak, rebirths)
 	local day = math.min(streak, UpgradeConfig.DAILY_MAX_STREAK)
 	return UpgradeConfig.DAILY_BASE_REWARD * day * (1 + rebirths)
+end
+
+---------------------------------------------------------------------
+-- ペット（卵から出る。強い順に MAX_EQUIPPED 匹が自動でついてくる）
+---------------------------------------------------------------------
+UpgradeConfig.MAX_EQUIPPED_PETS = 3
+
+UpgradeConfig.Rarities = {
+	common = { order = 1, color = Color3.fromRGB(200, 200, 200) },
+	uncommon = { order = 2, color = Color3.fromRGB(90, 220, 90) },
+	rare = { order = 3, color = Color3.fromRGB(70, 150, 255) },
+	epic = { order = 4, color = Color3.fromRGB(190, 90, 255) },
+	legendary = { order = 5, color = Color3.fromRGB(255, 200, 40) },
+}
+
+-- bonus はコインの倍率に足される量（0.5 なら +50%）
+UpgradeConfig.Pets = {
+	slime = { rarity = "common", bonus = 0.1, color = Color3.fromRGB(110, 220, 110), size = 1.6 },
+	bunny = { rarity = "common", bonus = 0.15, color = Color3.fromRGB(245, 245, 245), size = 1.7 },
+	cat = { rarity = "uncommon", bonus = 0.25, color = Color3.fromRGB(255, 160, 60), size = 1.8 },
+	dragon = { rarity = "rare", bonus = 0.5, color = Color3.fromRGB(230, 60, 60), size = 2.1 },
+	unicorn = { rarity = "epic", bonus = 1.0, color = Color3.fromRGB(255, 140, 220), size = 2.2, neon = true },
+	phoenix = { rarity = "legendary", bonus = 2.5, color = Color3.fromRGB(255, 190, 40), size = 2.4, neon = true },
+}
+
+-- 卵: cost コインで1回。weights は出やすさ（合計に対する割合が確率）
+UpgradeConfig.Eggs = {
+	basic = {
+		cost = 500,
+		color = Color3.fromRGB(240, 230, 210),
+		position = Vector3.new(-16, 0, -12),
+		weights = { slime = 45, bunny = 30, cat = 17, dragon = 6.5, unicorn = 1.4, phoenix = 0.1 },
+	},
+	golden = {
+		cost = 25000,
+		color = Color3.fromRGB(255, 200, 40),
+		position = Vector3.new(-26, 0, -12),
+		weights = { cat = 40, dragon = 35, unicorn = 20, phoenix = 5 },
+	},
+}
+UpgradeConfig.EggOrder = { "basic", "golden" }
+
+-- 持っているペット（{ cat = 2, ... }）から、ついてくるペットと合計ボーナスを決める
+function UpgradeConfig.EquippedPets(ownedPets)
+	local list = {}
+	for petId, count in pairs(ownedPets) do
+		if UpgradeConfig.Pets[petId] then
+			for _ = 1, math.min(count, UpgradeConfig.MAX_EQUIPPED_PETS) do
+				table.insert(list, petId)
+			end
+		end
+	end
+	table.sort(list, function(a, b)
+		return UpgradeConfig.Pets[a].bonus > UpgradeConfig.Pets[b].bonus
+	end)
+
+	local equipped, bonus = {}, 0
+	for i = 1, math.min(#list, UpgradeConfig.MAX_EQUIPPED_PETS) do
+		equipped[i] = list[i]
+		bonus = bonus + UpgradeConfig.Pets[list[i]].bonus
+	end
+	return equipped, bonus
+end
+
+-- 卵の中身を1つ決める（rng は Random）
+function UpgradeConfig.RollEgg(eggId, rng)
+	local weights = UpgradeConfig.Eggs[eggId].weights
+	local total = 0
+	for _, weight in pairs(weights) do
+		total = total + weight
+	end
+	local roll = rng:NextNumber(0, total)
+	local fallback
+	for petId, weight in pairs(weights) do
+		fallback = petId
+		roll = roll - weight
+		if roll <= 0 then
+			return petId
+		end
+	end
+	return fallback
 end
 
 ---------------------------------------------------------------------
@@ -2949,7 +3072,7 @@ local STARTING_COINS = 0
 local CLICK_COOLDOWN = 0.1 -- 連打ツール対策（秒）
 
 -- 使うキーは必ず Combine する
-DataStore2.Combine("DATA", "coins", "rebirths", "lastDailyDay", "dailyStreak", "purchaseHistory", "lastSeen")
+DataStore2.Combine("DATA", "coins", "rebirths", "lastDailyDay", "dailyStreak", "purchaseHistory", "lastSeen", "pets")
 for _, upgradeId in ipairs(UpgradeConfig.Order) do
 	DataStore2.Combine("DATA", UpgradeConfig.Upgrades[upgradeId].key)
 end
@@ -2967,6 +3090,11 @@ buyUpgrade.Parent = remotes
 local coinPopup = Instance.new("RemoteEvent")
 coinPopup.Name = "CoinPopup"
 coinPopup.Parent = remotes
+
+-- 卵を割った結果をその人に知らせる（petId）
+local hatchResult = Instance.new("RemoteEvent")
+hatchResult.Name = "HatchResult"
+hatchResult.Parent = remotes
 
 local rebirthRemote = Instance.new("RemoteEvent")
 rebirthRemote.Name = "Rebirth"
@@ -3084,8 +3212,16 @@ local function getMultiplier(player)
 	return UpgradeConfig.Multiplier(
 		DataStore2("rebirths", player):Get(0),
 		player:GetAttribute("FriendCount") or 0,
-		player:GetAttribute("Pass_doubleCoins") == true
+		player:GetAttribute("Pass_doubleCoins") == true,
+		player:GetAttribute("PetBonus") or 0
 	)
+end
+
+-- ついてくるペットを属性に書く（クライアントが見た目を作る）
+local function refreshPets(player)
+	local equipped, bonus = UpgradeConfig.EquippedPets(DataStore2("pets", player):Get({}))
+	player:SetAttribute("EquippedPets", table.concat(equipped, ","))
+	player:SetAttribute("PetBonus", bonus)
 end
 
 local function refreshMultiplier(player)
@@ -3212,6 +3348,7 @@ end
 function onPlayerLoaded(player)
 	player:SetAttribute("FriendCount", 0)
 	checkGamePasses(player)
+	refreshPets(player)
 	refreshMultiplier(player)
 	updateFriendBonus()
 
@@ -3657,6 +3794,116 @@ MarketplaceService.ProcessReceipt = function(receipt)
 	announce:FireAllClients("announce_pack", ANNOUNCE_GOLD, player.DisplayName, "@product_" .. productKey .. "_name", reward)
 	return Enum.ProductPurchaseDecision.PurchaseGranted
 end
+
+
+---------------------------------------------------------------------
+-- ペットの卵: 台の上の卵に近づいて E キー（スマホはタップ）で割る
+---------------------------------------------------------------------
+local hatchRng = Random.new()
+local lastHatch = {}
+local HATCH_COOLDOWN = 1
+
+local function hatch(player, eggId)
+	if not loadedPlayers[player] then
+		return
+	end
+	local now = tick()
+	if lastHatch[player] and now - lastHatch[player] < HATCH_COOLDOWN then
+		return
+	end
+	lastHatch[player] = now
+
+	local egg = UpgradeConfig.Eggs[eggId]
+	local coinStore = DataStore2("coins", player)
+	if coinStore:Get(STARTING_COINS) < egg.cost then
+		announce:FireClient(player, "announce_need_coins", ANNOUNCE_PINK, egg.cost)
+		return
+	end
+	coinStore:Increment(-egg.cost, STARTING_COINS)
+
+	local petId = UpgradeConfig.RollEgg(eggId, hatchRng)
+	local petsStore = DataStore2("pets", player)
+	local pets = petsStore:Get({})
+	pets[petId] = (pets[petId] or 0) + 1
+	petsStore:Set(pets)
+
+	refreshPets(player)
+	refreshMultiplier(player)
+	hatchResult:FireClient(player, petId)
+
+	-- レア以上は全員にお知らせ
+	local rarity = UpgradeConfig.Pets[petId].rarity
+	if UpgradeConfig.Rarities[rarity].order >= UpgradeConfig.Rarities.rare.order then
+		announce:FireAllClients(
+			"announce_hatch",
+			UpgradeConfig.Rarities[rarity].color,
+			player.DisplayName,
+			"@rarity_" .. rarity,
+			"@pet_" .. petId
+		)
+	end
+end
+
+for _, eggId in ipairs(UpgradeConfig.EggOrder) do
+	local egg = UpgradeConfig.Eggs[eggId]
+
+	local stand = Instance.new("Part")
+	stand.Name = "EggStand"
+	stand.Shape = Enum.PartType.Cylinder
+	stand.Anchored = true
+	stand.Size = Vector3.new(1.5, 7, 7)
+	stand.CFrame = CFrame.new(egg.position + Vector3.new(0, 0.75, 0)) * CFrame.Angles(0, 0, math.rad(90))
+	stand.Color = Color3.fromRGB(90, 60, 130)
+	stand.Material = Enum.Material.SmoothPlastic
+	stand.Parent = Workspace
+
+	local eggPart = Instance.new("Part")
+	eggPart.Name = "Egg"
+	eggPart:SetAttribute("EggId", eggId)
+	eggPart.Anchored = true
+	eggPart.Size = Vector3.new(4, 5, 4)
+	eggPart.Position = egg.position + Vector3.new(0, 4, 0)
+	eggPart.Color = egg.color
+	eggPart.Material = eggId == "golden" and Enum.Material.Neon or Enum.Material.SmoothPlastic
+	eggPart.Parent = Workspace
+
+	local mesh = Instance.new("SpecialMesh")
+	mesh.MeshType = Enum.MeshType.Sphere
+	mesh.Parent = eggPart
+
+	local label = Instance.new("BillboardGui")
+	label.Name = "EggLabel"
+	label.Size = UDim2.new(0, 220, 0, 60)
+	label.StudsOffset = Vector3.new(0, 4.5, 0)
+	label.AlwaysOnTop = true
+	label.Parent = eggPart
+
+	local labelText = Instance.new("TextLabel")
+	labelText.Size = UDim2.new(1, 0, 1, 0)
+	labelText.BackgroundTransparency = 1
+	labelText.Text = string.format("%s Egg\n%d coins", eggId == "golden" and "Golden" or "Basic", egg.cost)
+	labelText.TextColor3 = egg.color
+	labelText.TextStrokeTransparency = 0
+	labelText.TextScaled = true
+	labelText.Font = Enum.Font.GothamBlack
+	labelText.Parent = label
+
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.ActionText = "Hatch"
+	prompt.ObjectText = eggId == "golden" and "Golden Egg" or "Basic Egg"
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = 12
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = eggPart
+
+	prompt.Triggered:Connect(function(player)
+		hatch(player, eggId)
+	end)
+end
+
+Players.PlayerRemoving:Connect(function(player)
+	lastHatch[player] = nil
+end)
 ]]></string>
       </Properties>
     </Item>
@@ -4313,6 +4560,337 @@ coinPopup.OnClientEvent:Connect(function(amount, isCrit)
 	end
 	playPress()
 	showPopup(amount, isCrit)
+end)
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="LocalScript" referent="22">
+        <Properties>
+          <string name="Name">PetsClient</string>
+          <string name="Source"><![CDATA[-- ペット: ついてくる見た目・卵を割ったときの演出・画面のペット表示
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local Workspace = game:GetService("Workspace")
+
+local UpgradeConfig = require(ReplicatedStorage:WaitForChild("UpgradeConfig"))
+local Locale = require(ReplicatedStorage:WaitForChild("Locale"))
+
+local remotes = ReplicatedStorage:WaitForChild("CoinClickerRemotes")
+local hatchResult = remotes:WaitForChild("HatchResult")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local language = Locale.GetLanguage(player)
+
+local function L(key, ...)
+	return Locale.Get(language, key, ...)
+end
+
+local function formatNumber(n)
+	local s = string.format("%d", n)
+	local formatted = s:reverse():gsub("(%d%d%d)", "%1,"):reverse()
+	if formatted:sub(1, 1) == "," then
+		formatted = formatted:sub(2)
+	end
+	return formatted
+end
+
+local function percent(bonus)
+	return formatNumber(math.floor(bonus * 100 + 0.5))
+end
+
+---------------------------------------------------------------------
+-- 卵の看板と操作ボタンを自分の言語にする
+---------------------------------------------------------------------
+local function relabelEgg(eggPart)
+	local eggId = eggPart:GetAttribute("EggId")
+	local egg = eggId and UpgradeConfig.Eggs[eggId]
+	if not egg then
+		return
+	end
+	local billboard = eggPart:FindFirstChild("EggLabel")
+	local label = billboard and billboard:FindFirstChildOfClass("TextLabel")
+	if label then
+		label.Text = L("egg_" .. eggId, formatNumber(egg.cost))
+	end
+	local prompt = eggPart:FindFirstChildOfClass("ProximityPrompt")
+	if prompt then
+		prompt.ActionText = L("egg_action")
+		prompt.ObjectText = string.match(L("egg_" .. eggId, ""), "^[^\n]+") or ""
+	end
+end
+
+task.spawn(function()
+	for _, child in ipairs(Workspace:GetChildren()) do
+		if child.Name == "Egg" then
+			relabelEgg(child)
+		end
+	end
+end)
+Workspace.ChildAdded:Connect(function(child)
+	if child.Name == "Egg" then
+		task.wait(0.5)
+		relabelEgg(child)
+	end
+end)
+
+---------------------------------------------------------------------
+-- 画面: 自分のペット表示と、卵を割ったときの演出
+---------------------------------------------------------------------
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "PetsGui"
+screenGui.ResetOnSpawn = false
+
+local uiScale = Instance.new("UIScale")
+uiScale.Parent = screenGui
+local function updateScale()
+	local camera = Workspace.CurrentCamera
+	if camera then
+		uiScale.Scale = math.clamp(camera.ViewportSize.Y / 650, 0.55, 1)
+	end
+end
+if Workspace.CurrentCamera then
+	Workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(updateScale)
+end
+updateScale()
+
+local petsLabel = Instance.new("TextLabel")
+petsLabel.AnchorPoint = Vector2.new(0.5, 1)
+petsLabel.Position = UDim2.new(0.5, 0, 1, -76)
+petsLabel.Size = UDim2.new(0, 460, 0, 30)
+petsLabel.BackgroundColor3 = Color3.fromRGB(35, 25, 45)
+petsLabel.BackgroundTransparency = 0.3
+petsLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+petsLabel.TextScaled = true
+petsLabel.Font = Enum.Font.GothamBold
+petsLabel.Parent = screenGui
+
+local petsCorner = Instance.new("UICorner")
+petsCorner.CornerRadius = UDim.new(0, 10)
+petsCorner.Parent = petsLabel
+
+local function splitPets(text)
+	local list = {}
+	for petId in string.gmatch(text or "", "[^,]+") do
+		if UpgradeConfig.Pets[petId] then
+			table.insert(list, petId)
+		end
+	end
+	return list
+end
+
+local function updatePetsLabel()
+	local list = splitPets(player:GetAttribute("EquippedPets"))
+	if #list == 0 then
+		petsLabel.Text = L("pets_none")
+		return
+	end
+	local names = {}
+	for i, petId in ipairs(list) do
+		names[i] = L("pet_" .. petId)
+	end
+	petsLabel.Text = L("pets_label", table.concat(names, ", "), percent(player:GetAttribute("PetBonus") or 0))
+end
+
+player:GetAttributeChangedSignal("EquippedPets"):Connect(updatePetsLabel)
+player:GetAttributeChangedSignal("PetBonus"):Connect(updatePetsLabel)
+updatePetsLabel()
+
+hatchResult.OnClientEvent:Connect(function(petId)
+	local pet = UpgradeConfig.Pets[petId]
+	if not pet then
+		return
+	end
+	local rarityColor = UpgradeConfig.Rarities[pet.rarity].color
+
+	local frame = Instance.new("Frame")
+	frame.AnchorPoint = Vector2.new(0.5, 0.5)
+	frame.Position = UDim2.new(0.5, 0, 0.45, 0)
+	frame.Size = UDim2.new(0, 520, 0, 170)
+	frame.BackgroundColor3 = Color3.fromRGB(30, 20, 45)
+	frame.BackgroundTransparency = 0.1
+	frame.Parent = screenGui
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 16)
+	corner.Parent = frame
+
+	local stroke = Instance.new("UIStroke")
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	stroke.Color = rarityColor
+	stroke.Thickness = 4
+	stroke.Parent = frame
+
+	local title = Instance.new("TextLabel")
+	title.Size = UDim2.new(1, 0, 0.35, 0)
+	title.BackgroundTransparency = 1
+	title.Text = L("hatch_title")
+	title.TextColor3 = Color3.fromRGB(255, 255, 255)
+	title.TextScaled = true
+	title.Font = Enum.Font.GothamBold
+	title.Parent = frame
+
+	local result = Instance.new("TextLabel")
+	result.Position = UDim2.new(0, 10, 0.38, 0)
+	result.Size = UDim2.new(1, -20, 0.55, 0)
+	result.BackgroundTransparency = 1
+	result.Text = L("hatch_result", L("rarity_" .. pet.rarity), L("pet_" .. petId), percent(pet.bonus))
+	result.TextColor3 = rarityColor
+	result.TextStrokeTransparency = 0
+	result.TextScaled = true
+	result.Font = Enum.Font.GothamBlack
+	result.Parent = frame
+
+	local scale = Instance.new("UIScale")
+	scale.Scale = 0.3
+	scale.Parent = frame
+	TweenService:Create(scale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+
+	task.delay(2.5, function()
+		frame:Destroy()
+	end)
+end)
+
+screenGui.Parent = playerGui
+
+---------------------------------------------------------------------
+-- ペットの見た目: みんなのペットが持ち主の後ろをふわふわついていく
+---------------------------------------------------------------------
+local petsFolder = Instance.new("Folder")
+petsFolder.Name = "ClientPets"
+petsFolder.Parent = Workspace
+
+local OFFSETS = {
+	Vector3.new(-3.5, 0, 4),
+	Vector3.new(3.5, 0, 4),
+	Vector3.new(0, 0, 6.5),
+}
+
+local followers = {} -- player -> { parts }
+
+local function makePet(petId)
+	local def = UpgradeConfig.Pets[petId]
+
+	local body = Instance.new("Part")
+	body.Name = petId
+	body.Shape = Enum.PartType.Ball
+	body.Size = Vector3.new(def.size, def.size, def.size)
+	body.Anchored = true
+	body.CanCollide = false
+	body.CanQuery = false
+	body.CanTouch = false
+	body.CastShadow = false
+	body.Color = def.color
+	body.Material = def.neon and Enum.Material.Neon or Enum.Material.SmoothPlastic
+
+	-- 顔（目）
+	local face = Instance.new("SurfaceGui")
+	face.Face = Enum.NormalId.Front
+	face.LightInfluence = 0
+	face.Parent = body
+	local eyes = Instance.new("TextLabel")
+	eyes.Size = UDim2.new(1, 0, 1, 0)
+	eyes.BackgroundTransparency = 1
+	eyes.Text = "•  •"
+	eyes.TextColor3 = Color3.fromRGB(20, 20, 20)
+	eyes.TextScaled = true
+	eyes.Font = Enum.Font.GothamBlack
+	eyes.Parent = face
+
+	-- 名前（レアリティの色）
+	local tag = Instance.new("BillboardGui")
+	tag.Size = UDim2.new(0, 120, 0, 24)
+	tag.StudsOffset = Vector3.new(0, def.size * 0.5 + 0.8, 0)
+	tag.MaxDistance = 60
+	tag.Parent = body
+	local tagText = Instance.new("TextLabel")
+	tagText.Size = UDim2.new(1, 0, 1, 0)
+	tagText.BackgroundTransparency = 1
+	tagText.Text = L("pet_" .. petId)
+	tagText.TextColor3 = UpgradeConfig.Rarities[def.rarity].color
+	tagText.TextStrokeTransparency = 0
+	tagText.TextScaled = true
+	tagText.Font = Enum.Font.GothamBold
+	tagText.Parent = tag
+
+	if def.rarity == "legendary" or def.rarity == "epic" then
+		local light = Instance.new("PointLight")
+		light.Color = def.color
+		light.Range = 10
+		light.Brightness = 2
+		light.Parent = body
+
+		local sparkles = Instance.new("Sparkles")
+		sparkles.SparkleColor = def.color
+		sparkles.Parent = body
+	end
+
+	body.Parent = petsFolder
+	return body
+end
+
+local function clearPets(owner)
+	local entry = followers[owner]
+	if entry then
+		for _, part in ipairs(entry.parts) do
+			part:Destroy()
+		end
+	end
+	followers[owner] = nil
+end
+
+local function rebuildPets(owner)
+	clearPets(owner)
+	local list = splitPets(owner:GetAttribute("EquippedPets"))
+	if #list == 0 then
+		return
+	end
+	local entry = { parts = {}, placed = false }
+	for i, petId in ipairs(list) do
+		if OFFSETS[i] then
+			entry.parts[i] = makePet(petId)
+		end
+	end
+	followers[owner] = entry
+end
+
+local function watchPlayer(owner)
+	owner:GetAttributeChangedSignal("EquippedPets"):Connect(function()
+		rebuildPets(owner)
+	end)
+	rebuildPets(owner)
+end
+
+for _, other in ipairs(Players:GetPlayers()) do
+	watchPlayer(other)
+end
+Players.PlayerAdded:Connect(watchPlayer)
+Players.PlayerRemoving:Connect(clearPets)
+
+RunService.RenderStepped:Connect(function(dt)
+	local t = os.clock()
+	local alpha = math.clamp(dt * 8, 0, 1)
+	for owner, entry in pairs(followers) do
+		local character = owner.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart")
+		if root then
+			local back = -root.CFrame.LookVector
+			for i, part in ipairs(entry.parts) do
+				local offset = OFFSETS[i]
+				local base = (root.CFrame * CFrame.new(offset.X, 0, offset.Z)).Position
+				local position = base + Vector3.new(0, -0.8 + math.sin(t * 3 + i) * 0.4, 0)
+				local goal = CFrame.lookAt(position, position + back)
+				if entry.placed then
+					part.CFrame = part.CFrame:Lerp(goal, alpha)
+				else
+					part.CFrame = goal
+				end
+			end
+			entry.placed = true
+		end
+	end
 end)
 ]]></string>
         </Properties>

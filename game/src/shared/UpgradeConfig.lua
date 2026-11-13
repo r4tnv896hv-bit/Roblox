@@ -88,10 +88,12 @@ function UpgradeConfig.RebirthCost(rebirths)
 	return math.floor(UpgradeConfig.REBIRTH_BASE_COST * UpgradeConfig.REBIRTH_COST_GROWTH ^ rebirths)
 end
 
--- コインの倍率（転生 × フレンド × コイン2倍パス）
-function UpgradeConfig.Multiplier(rebirths, friendCount, hasDoubleCoins)
+-- コインの倍率（転生 × フレンド × ペット × コイン2倍パス）
+function UpgradeConfig.Multiplier(rebirths, friendCount, hasDoubleCoins, petBonus)
 	local friends = math.min(friendCount, UpgradeConfig.MAX_FRIENDS_COUNTED)
-	local multiplier = (1 + rebirths * UpgradeConfig.REBIRTH_BONUS) * (1 + friends * UpgradeConfig.FRIEND_BONUS)
+	local multiplier = (1 + rebirths * UpgradeConfig.REBIRTH_BONUS)
+		* (1 + friends * UpgradeConfig.FRIEND_BONUS)
+		* (1 + (petBonus or 0))
 	if hasDoubleCoins then
 		multiplier = multiplier * 2
 	end
@@ -102,6 +104,87 @@ end
 function UpgradeConfig.DailyReward(streak, rebirths)
 	local day = math.min(streak, UpgradeConfig.DAILY_MAX_STREAK)
 	return UpgradeConfig.DAILY_BASE_REWARD * day * (1 + rebirths)
+end
+
+---------------------------------------------------------------------
+-- ペット（卵から出る。強い順に MAX_EQUIPPED 匹が自動でついてくる）
+---------------------------------------------------------------------
+UpgradeConfig.MAX_EQUIPPED_PETS = 3
+
+UpgradeConfig.Rarities = {
+	common = { order = 1, color = Color3.fromRGB(200, 200, 200) },
+	uncommon = { order = 2, color = Color3.fromRGB(90, 220, 90) },
+	rare = { order = 3, color = Color3.fromRGB(70, 150, 255) },
+	epic = { order = 4, color = Color3.fromRGB(190, 90, 255) },
+	legendary = { order = 5, color = Color3.fromRGB(255, 200, 40) },
+}
+
+-- bonus はコインの倍率に足される量（0.5 なら +50%）
+UpgradeConfig.Pets = {
+	slime = { rarity = "common", bonus = 0.1, color = Color3.fromRGB(110, 220, 110), size = 1.6 },
+	bunny = { rarity = "common", bonus = 0.15, color = Color3.fromRGB(245, 245, 245), size = 1.7 },
+	cat = { rarity = "uncommon", bonus = 0.25, color = Color3.fromRGB(255, 160, 60), size = 1.8 },
+	dragon = { rarity = "rare", bonus = 0.5, color = Color3.fromRGB(230, 60, 60), size = 2.1 },
+	unicorn = { rarity = "epic", bonus = 1.0, color = Color3.fromRGB(255, 140, 220), size = 2.2, neon = true },
+	phoenix = { rarity = "legendary", bonus = 2.5, color = Color3.fromRGB(255, 190, 40), size = 2.4, neon = true },
+}
+
+-- 卵: cost コインで1回。weights は出やすさ（合計に対する割合が確率）
+UpgradeConfig.Eggs = {
+	basic = {
+		cost = 500,
+		color = Color3.fromRGB(240, 230, 210),
+		position = Vector3.new(-16, 0, -12),
+		weights = { slime = 45, bunny = 30, cat = 17, dragon = 6.5, unicorn = 1.4, phoenix = 0.1 },
+	},
+	golden = {
+		cost = 25000,
+		color = Color3.fromRGB(255, 200, 40),
+		position = Vector3.new(-26, 0, -12),
+		weights = { cat = 40, dragon = 35, unicorn = 20, phoenix = 5 },
+	},
+}
+UpgradeConfig.EggOrder = { "basic", "golden" }
+
+-- 持っているペット（{ cat = 2, ... }）から、ついてくるペットと合計ボーナスを決める
+function UpgradeConfig.EquippedPets(ownedPets)
+	local list = {}
+	for petId, count in pairs(ownedPets) do
+		if UpgradeConfig.Pets[petId] then
+			for _ = 1, math.min(count, UpgradeConfig.MAX_EQUIPPED_PETS) do
+				table.insert(list, petId)
+			end
+		end
+	end
+	table.sort(list, function(a, b)
+		return UpgradeConfig.Pets[a].bonus > UpgradeConfig.Pets[b].bonus
+	end)
+
+	local equipped, bonus = {}, 0
+	for i = 1, math.min(#list, UpgradeConfig.MAX_EQUIPPED_PETS) do
+		equipped[i] = list[i]
+		bonus = bonus + UpgradeConfig.Pets[list[i]].bonus
+	end
+	return equipped, bonus
+end
+
+-- 卵の中身を1つ決める（rng は Random）
+function UpgradeConfig.RollEgg(eggId, rng)
+	local weights = UpgradeConfig.Eggs[eggId].weights
+	local total = 0
+	for _, weight in pairs(weights) do
+		total = total + weight
+	end
+	local roll = rng:NextNumber(0, total)
+	local fallback
+	for petId, weight in pairs(weights) do
+		fallback = petId
+		roll = roll - weight
+		if roll <= 0 then
+			return petId
+		end
+	end
+	return fallback
 end
 
 ---------------------------------------------------------------------
