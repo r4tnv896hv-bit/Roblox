@@ -26,6 +26,9 @@
 				},
 				"PetsClient": {
 					"$path": "game/src/client/PetsClient.client.lua"
+				},
+				"CrossPromo": {
+					"$path": "games/shared/CrossPromo.client.lua"
 				}
 			}
 		},

@@ -326,7 +326,7 @@ local function store(player, key)
 end
 
 local function getMultiplier(player)
-	return BotConfig.Multiplier(store(player, "rebirths"):Get(0), player:GetAttribute("FriendCount") or 0)
+	return (Workspace:GetAttribute("Weekend") and 2 or 1) * BotConfig.Multiplier(store(player, "rebirths"):Get(0), player:GetAttribute("FriendCount") or 0)
 end
 
 local function addMoney(player, amount)

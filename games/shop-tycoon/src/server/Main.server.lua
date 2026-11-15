@@ -150,7 +150,7 @@ local function upgradeLevel(player, upgradeId)
 end
 
 local function getMultiplier(player)
-	return ShopConfig.Multiplier(
+	return (Workspace:GetAttribute("Weekend") and 2 or 1) * ShopConfig.Multiplier(
 		store(player, "franchises"):Get(0),
 		player:GetAttribute("FriendCount") or 0,
 		player:GetAttribute("Pass_doubleMoney") == true

@@ -203,7 +203,7 @@ local function upgradeLevel(player, upgradeId)
 end
 
 local function getMultiplier(player)
-	return ShredConfig.Multiplier(store(player, "rebirths"):Get(0), player:GetAttribute("FriendCount") or 0)
+	return (Workspace:GetAttribute("Weekend") and 2 or 1) * ShredConfig.Multiplier(store(player, "rebirths"):Get(0), player:GetAttribute("FriendCount") or 0)
 		* ShredConfig.BladeBonus(upgradeLevel(player, "blade"))
 end
 
