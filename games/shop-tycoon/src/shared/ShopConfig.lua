@@ -99,8 +99,8 @@ ShopConfig.OFFLINE_MAX_SECONDS = 8 * 60 * 60
 
 -- 課金（id は Roblox で作ったあとに入れる。0 のものは表示しない）
 ShopConfig.GamePasses = {
-	doubleMoney = { id = 0 },
-	autoShipper = { id = 0 }, -- 発送スタッフ +5/秒
+	doubleMoney = { id = 2088526012 },
+	autoShipper = { id = 2087949977 }, -- 発送スタッフ +5/秒
 }
 ShopConfig.GamePassOrder = { "doubleMoney", "autoShipper" }
 ShopConfig.AUTO_SHIPPER_BONUS = 5

@@ -1,0 +1,7 @@
+{
+	"shop-tycoon": { "universeId": 10776837997, "placeId": 70531981839347, "project": "games/shop-tycoon/game.project.json" },
+	"steal-a-bot": { "universeId": 10776838142, "placeId": 93118600225288, "project": "games/steal-a-bot/game.project.json" },
+	"lucky-kick": { "universeId": 10776838374, "placeId": 102480658680221, "project": "games/lucky-kick/game.project.json" },
+	"shred-a-billion": { "universeId": 10776838477, "placeId": 100433605048455, "project": "games/shred-a-billion/game.project.json" },
+	"coin-clicker": { "universeId": 10776270367, "placeId": 110580446151597, "project": "game.project.json" }
+}

@@ -212,7 +212,7 @@ ShopConfig.PriceModes = {
 }
 
 -- お客さん: 1 秒あたりの訪問者（基本 + 広告）
-ShopConfig.BASE_VISITORS = 0.25
+ShopConfig.BASE_VISITORS = 0.5
 ShopConfig.BASE_CONVERSION = 0.6
 
 -- 広告キャンペーン: cost で duration 秒のあいだ visitors 人/秒 増える
@@ -280,8 +280,8 @@ ShopConfig.OFFLINE_MAX_SECONDS = 8 * 60 * 60
 
 -- 課金（id は Roblox で作ったあとに入れる。0 のものは表示しない）
 ShopConfig.GamePasses = {
-	doubleMoney = { id = 0 },
-	autoShipper = { id = 0 }, -- 発送スタッフ +5/秒
+	doubleMoney = { id = 2088526012 },
+	autoShipper = { id = 2087949977 }, -- 発送スタッフ +5/秒
 }
 ShopConfig.GamePassOrder = { "doubleMoney", "autoShipper" }
 ShopConfig.AUTO_SHIPPER_BONUS = 5
@@ -2929,10 +2929,7 @@ function actions.ship(player)
 		return
 	end
 	lastShipClick[player] = now
-	local shipped, revenue = shipOrders(player, ShopConfig.MANUAL_SHIP)
-	if shipped > 0 then
-		notifyRemote:FireClient(player, "toast_shipped", GREEN, revenue)
-	end
+	shipOrders(player, ShopConfig.MANUAL_SHIP)
 end
 
 function actions.buyStock(player, productId)
