@@ -30,6 +30,7 @@ local STRINGS = {
 		bot_nova = "Nova",
 		bot_titan = "Titan",
 		bot_glitch = "GLITCH",
+		npc_name = "Rival Factory",
 
 		toast_locked = "That base is locked!",
 		toast_no_space = "No space in your base! Sell a bot.",
@@ -74,6 +75,7 @@ local STRINGS = {
 		bot_nova = "ノヴァ",
 		bot_titan = "タイタン",
 		bot_glitch = "グリッチ",
+		npc_name = "ライバル工場",
 
 		toast_locked = "その基地はロック中！",
 		toast_no_space = "基地がいっぱい！ ロボットを売ろう",

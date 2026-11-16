@@ -367,6 +367,9 @@ local function incomePerSecond(player)
 end
 
 local function refreshPlayerInfo(player)
+	if not player then
+		return
+	end
 	player:SetAttribute("IncomePerSecond", incomePerSecond(player))
 	player:SetAttribute("Multiplier", getMultiplier(player))
 end
@@ -486,7 +489,7 @@ local function returnCarried(thief, reasonKey)
 		weld:Destroy()
 	end
 	local pedestal = carry.fromPedestal
-	if carry.fromBase.owner and pedestal.bot == carry.model then
+	if (carry.fromBase.owner or carry.fromBase.npc) and pedestal.bot == carry.model then
 		carry.model.PrimaryPart.Anchored = true
 		carry.model:PivotTo(CFrame.new(pedestal.part.Position + Vector3.new(0, 3.2, 0)))
 		pedestal.away = false
@@ -537,7 +540,7 @@ local function deliver(thief)
 		BotConfig.Rarities[bot.rarity].color,
 		thief.DisplayName,
 		"@bot_" .. carry.botId,
-		victim and victim.DisplayName or "?"
+		victim and victim.DisplayName or "@npc_name"
 	)
 end
 
@@ -610,12 +613,24 @@ local function giveDaily(player)
 	end
 end
 
+local clearNpcBase -- 下で定義（ライバル工場）
+
 local function onPlayerAdded(player)
 	local base
 	for _, b in ipairs(bases) do
-		if not b.owner then
+		if not b.owner and not b.npc then
 			base = b
 			break
+		end
+	end
+	if not base then
+		-- ライバル工場をどかして使う
+		for _, b in ipairs(bases) do
+			if b.npc then
+				clearNpcBase(b)
+				base = b
+				break
+			end
 		end
 	end
 	if not base then
@@ -912,4 +927,84 @@ Players.PlayerAdded:Connect(function()
 end)
 Players.PlayerRemoving:Connect(function()
 	task.defer(updateFriends)
+end)
+
+---------------------------------------------------------------------
+-- ライバル工場（NPC の基地）: 人が少なくても盗みに行けるように、空いた基地にロボットを置く
+---------------------------------------------------------------------
+local NPC_BASES = 2
+local npcRng = Random.new()
+
+function clearNpcBase(base)
+	for thief, carry in pairs(carrying) do
+		if carry.fromBase == base then
+			carrying[thief] = nil
+			local character = thief.Character
+			local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+			if humanoid then
+				humanoid.WalkSpeed = BotConfig.NORMAL_SPEED
+			end
+			carry.model:Destroy()
+		end
+	end
+	for _, pedestal in ipairs(base.pedestals) do
+		if pedestal.bot then
+			pedestal.bot:Destroy()
+		end
+		pedestal.bot = nil
+		pedestal.botId = nil
+		pedestal.away = false
+	end
+	base.npc = false
+	base.lockedUntil = 0
+	setBarrier(base, false)
+	base.signLabel.Text = "EMPTY BASE"
+	base.signLabel:SetAttribute("LocaleKey", nil)
+end
+
+local function fillNpcBase(base)
+	for _, pedestal in ipairs(base.pedestals) do
+		if not pedestal.botId and npcRng:NextNumber() < 0.7 then
+			makeOwnedBot(base, pedestal, BotConfig.Roll(npcRng).id)
+		end
+	end
+end
+
+local function startNpcBase(base)
+	base.npc = true
+	base.signLabel.Text = "RIVAL BOT FACTORY"
+	base.signLabel:SetAttribute("LocaleKey", "npc_name")
+	fillNpcBase(base)
+end
+
+task.spawn(function()
+	while true do
+		local npcCount = 0
+		for _, base in ipairs(bases) do
+			if base.npc then
+				npcCount = npcCount + 1
+			end
+		end
+		-- 空いている基地があれば、ライバル工場を NPC_BASES 個まで立てる（1 つは人のために空けておく）
+		local free = {}
+		for _, base in ipairs(bases) do
+			if not base.owner and not base.npc then
+				table.insert(free, base)
+			end
+		end
+		while npcCount < NPC_BASES and #free > 1 do
+			startNpcBase(table.remove(free))
+			npcCount = npcCount + 1
+		end
+		-- ロボットを補充し、ときどきロックする
+		for _, base in ipairs(bases) do
+			if base.npc then
+				fillNpcBase(base)
+				if npcRng:NextNumber() < 0.25 and os.clock() > base.lockedUntil then
+					base.lockedUntil = os.clock() + 12
+				end
+			end
+		end
+		task.wait(20)
+	end
 end)

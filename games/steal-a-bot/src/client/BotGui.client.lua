@@ -156,6 +156,39 @@ local function showToast(text, colorValue)
 	end)
 end
 
+-- 画面の真ん中にドンと出る大きな文字（レアの登場・盗みの成功）
+local banner = Instance.new("TextLabel")
+banner.AnchorPoint = Vector2.new(0.5, 0.5)
+banner.Position = UDim2.new(0.5, 0, 0.38, 0)
+banner.Size = UDim2.new(0, 720, 0, 90)
+banner.BackgroundTransparency = 1
+banner.TextStrokeTransparency = 0
+banner.TextScaled = true
+banner.Font = Enum.Font.GothamBlack
+banner.Visible = false
+banner.Parent = screen
+local bannerScale = Instance.new("UIScale")
+bannerScale.Parent = banner
+local TweenService = game:GetService("TweenService")
+local bannerToken = 0
+
+local function showBanner(text, colorValue)
+	bannerToken = bannerToken + 1
+	local token = bannerToken
+	banner.Text = text
+	banner.TextColor3 = colorValue or WHITE
+	banner.Visible = true
+	bannerScale.Scale = 0.3
+	TweenService:Create(bannerScale, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	task.delay(2.5, function()
+		if token == bannerToken then
+			banner.Visible = false
+		end
+	end)
+end
+
+local BIG_KEYS = { announce_spawn = true, announce_stolen = true }
+
 notifyRemote.OnClientEvent:Connect(function(key, colorValue, ...)
 	local count = select("#", ...)
 	local args = { ... }
@@ -167,7 +200,11 @@ notifyRemote.OnClientEvent:Connect(function(key, colorValue, ...)
 			args[i] = L(string.sub(arg, 2))
 		end
 	end
-	showToast(L(key, table.unpack(args, 1, count)), colorValue)
+	local message = L(key, table.unpack(args, 1, count))
+	showToast(message, colorValue)
+	if BIG_KEYS[key] then
+		showBanner(message, colorValue)
+	end
 end)
 
 -- 表示の更新
@@ -230,6 +267,19 @@ local function setupPrompt(prompt)
 	prompt:GetAttributeChangedSignal("OwnerUserId"):Connect(refresh)
 end
 
+local function setupLocaleLabel(object)
+	if object:IsA("TextLabel") then
+		local function apply()
+			local key = object:GetAttribute("LocaleKey")
+			if key then
+				object.Text = L(key)
+			end
+		end
+		apply()
+		object:GetAttributeChangedSignal("LocaleKey"):Connect(apply)
+	end
+end
+
 local function setupTag(object)
 	if object:IsA("TextLabel") and object:GetAttribute("BotId") then
 		local bot = BotConfig.GetBot(object:GetAttribute("BotId"))
@@ -242,11 +292,13 @@ end
 for _, object in ipairs(Workspace:GetDescendants()) do
 	setupPrompt(object)
 	setupTag(object)
+	setupLocaleLabel(object)
 end
 Workspace.DescendantAdded:Connect(function(object)
 	task.defer(function()
 		setupPrompt(object)
 		setupTag(object)
+		setupLocaleLabel(object)
 	end)
 end)
 
